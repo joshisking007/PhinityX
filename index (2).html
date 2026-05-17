@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhinityX</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 1: Paradigm Leveling Loader
+  ════════════════════════════════════════════ -->
+  <div id="screen-paradigm" class="screen active">
+    <div class="paradigm-center">
+      <div class="chevron-assembly" id="chevronAssembly">
+        <div class="chevron chevron-top" style="--c:#C1121F"></div>
+        <div class="chevron chevron-right" style="--c:#E9C46A"></div>
+        <div class="chevron chevron-bottom" style="--c:#2A9D8F"></div>
+        <div class="chevron chevron-left" style="--c:#E76F51"></div>
+      </div>
+      <p class="paradigm-label">PARADIGM LEVELING</p>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="paradigmProgress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 2: PhinityX Loader
+  ════════════════════════════════════════════ -->
+  <div id="screen-loader" class="screen">
+    <div class="loader-center">
+      <h1 class="phinity-wordmark">PhinityX</h1>
+      <p class="loader-sub">Preparing your environment.</p>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="loaderProgress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 3: Sign-up
+  ════════════════════════════════════════════ -->
+  <div id="screen-signup" class="screen">
+    <div class="form-screen">
+      <div class="form-header">
+        <span class="form-step-label">01 / WHO ARE YOU</span>
+        <h2 class="form-title">Let's begin.</h2>
+      </div>
+      <div class="form-body">
+        <div class="field-group">
+          <label class="field-label">Full Name</label>
+          <input type="text" id="su-name" class="field-input" placeholder="Your full name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Date of Birth</label>
+          <input type="date" id="su-dob" class="field-input" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Gender</label>
+          <div class="seg-selector" id="genderSelector">
+            <button class="seg-btn" data-val="male">Male</button>
+            <button class="seg-btn" data-val="female">Female</button>
+            <button class="seg-btn" data-val="other">Other</button>
+            <button class="seg-btn" data-val="prefer-not">Prefer not to say</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Field of Study</label>
+          <input type="text" id="su-field" class="field-input" placeholder="e.g. Computer Science, Law, Medicine" list="fieldSuggestions" />
+          <datalist id="fieldSuggestions">
+            <option value="Computer Science" />
+            <option value="Business Administration" />
+            <option value="Law" />
+            <option value="Medicine" />
+            <option value="Engineering" />
+            <option value="Psychology" />
+            <option value="Architecture" />
+            <option value="Economics" />
+            <option value="Pharmacy" />
+            <option value="Nursing" />
+            <option value="Accounting" />
+            <option value="Mass Communication" />
+          </datalist>
+        </div>
+        <div class="field-group">
+          <label class="field-label">University / Institution</label>
+          <input type="text" id="su-institution" class="field-input" placeholder="Your school or university" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Occupation <span class="optional-tag">optional</span></label>
+          <input type="text" id="su-occupation" class="field-input" placeholder="Current work or internship, if any" />
+        </div>
+
+        <!-- Account Tier Selection -->
+        <div class="field-group">
+          <label class="field-label">Choose your plan</label>
+          <div class="tier-cards" id="tierSelector">
+            <div class="tier-card selected" data-tier="free">
+              <div class="tier-card-top">
+                <span class="tier-name">Free</span>
+                <span class="tier-price">$0</span>
+              </div>
+              <ul class="tier-perks">
+                <li>3 documents / month</li>
+                <li>Basic fingerprint</li>
+                <li>1 Pulse Review flag</li>
+                <li>PDF with watermark</li>
+              </ul>
+            </div>
+            <div class="tier-card" data-tier="core">
+              <div class="tier-card-top">
+                <span class="tier-name">Core</span>
+                <span class="tier-price">$8<span class="tier-per">/mo</span></span>
+              </div>
+              <ul class="tier-perks">
+                <li>20 documents / month</li>
+                <li>Full fingerprint</li>
+                <li>Full Pulse Review</li>
+                <li>Session history (30)</li>
+                <li>Reference Injection</li>
+                <li>Submission Mode</li>
+              </ul>
+            </div>
+            <div class="tier-card" data-tier="pro">
+              <div class="tier-card-top">
+                <span class="tier-name">Pro</span>
+                <span class="tier-price">$16<span class="tier-per">/mo</span></span>
+              </div>
+              <div class="tier-badge">Most Powerful</div>
+              <ul class="tier-perks">
+                <li>Unlimited documents</li>
+                <li>Tone Lock</li>
+                <li>Fingerprint Vault</li>
+                <li>Word export (.docx)</li>
+                <li>Evolution Log</li>
+                <li>Collaborator Mode</li>
+                <li>Priority generation</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" id="signupContinue">Continue</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 4: Welcome
+  ════════════════════════════════════════════ -->
+  <div id="screen-welcome" class="screen">
+    <div class="welcome-center">
+      <p class="welcome-greeting">Welcome,</p>
+      <h2 class="welcome-name" id="welcomeName">—</h2>
+      <p class="welcome-body">I am Phinity. Here to adapt to your writing needs. Before we begin I just need to get to know you better to enhance the quality of our document production. I recommend you don't skip this part.</p>
+      <div class="welcome-actions">
+        <button class="btn-primary" id="btnGetToKnow">Get to know me</button>
+        <button class="btn-ghost" id="btnSkip">Skip for now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 5: Academic Profile
+  ════════════════════════════════════════════ -->
+  <div id="screen-academic" class="screen">
+    <div class="form-screen">
+      <div class="onboard-progress">
+        <div class="onboard-step active"></div>
+        <div class="onboard-step"></div>
+        <div class="onboard-step"></div>
+        <div class="onboard-step"></div>
+        <div class="onboard-step"></div>
+      </div>
+      <div class="form-header">
+        <span class="form-step-label">STEP 1 OF 5</span>
+        <h2 class="form-title">Let's set your baseline.</h2>
+        <p class="form-desc">PhinityX believes in continued improvement. A 2.5 CGPA student will not produce 4.2-level work overnight, and that is not a limitation; it is a foundation. Your output is calibrated to where you genuinely are, then aimed at where you want to be.</p>
+      </div>
+      <div class="form-body">
+        <div class="field-group">
+          <label class="field-label">Current CGPA</label>
+          <input type="number" id="ac-current" class="field-input" placeholder="e.g. 3.2" min="0" max="5" step="0.01" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Target CGPA</label>
+          <input type="number" id="ac-target" class="field-input" placeholder="e.g. 3.8" min="0" max="5" step="0.01" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">CGPA Scale</label>
+          <div class="seg-selector" id="cgpaScaleSelector">
+            <button class="seg-btn active" data-val="4.0">4.0 Scale</button>
+            <button class="seg-btn" data-val="5.0">5.0 Scale</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-nav">
+        <button class="btn-ghost btn-back" onclick="goBack()">Back</button>
+        <button class="btn-primary" id="academicNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 6: Writing Sample
+  ════════════════════════════════════════════ -->
+  <div id="screen-writing" class="screen">
+    <div class="form-screen">
+      <div class="onboard-progress">
+        <div class="onboard-step done"></div>
+        <div class="onboard-step active"></div>
+        <div class="onboard-step"></div>
+        <div class="onboard-step"></div>
+        <div class="onboard-step"></div>
+      </div>
+      <div class="form-header">
+        <span class="form-step-label">STEP 2 OF 5</span>
+        <h2 class="form-title">Write to me.</h2>
+        <p class="form-desc">PhinityX is not collecting personal data; it is studying how you write. Describe yourself, your thoughts, your worldview, anything that feels natural. Write at least five paragraphs. Do not use bullet points. Do not write what you think sounds good; write the way you actually think. Nothing about this is stored beyond your device.</p>
+      </div>
+      <div class="form-body">
+        <div class="field-group">
+          <label class="field-label">Your writing <span class="para-counter" id="paraCounter">0 paragraphs</span></label>
+          <textarea id="ws-sample" class="field-textarea" rows="10" placeholder="Start writing. There is no wrong answer here..."></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Previous submission excerpt <span class="optional-tag">optional</span></label>
+          <textarea id="ws-prev" class="field-textarea" rows="4" placeholder="Paste a paragraph from something you've already submitted, if you have one..."></textarea>
+        </div>
+      </div>
+      <div class="form-nav">
+        <button class="btn-ghost btn-back" onclick="goBack()">Back</button>
+        <button class="btn-primary" id="writingNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 7: Personality Mapping
+  ════════════════════════════════════════════ -->
+  <div id="screen-personality" class="screen">
+    <div class="form-screen">
+      <div class="onboard-progress">
+        <div class="onboard-step done"></div>
+        <div class="onboard-step done"></div>
+        <div class="onboard-step active"></div>
+        <div class="onboard-step"></div>
+        <div class="onboard-step"></div>
+      </div>
+      <div class="form-header">
+        <span class="form-step-label">STEP 3 OF 5</span>
+        <h2 class="form-title">Who are you, in fiction?</h2>
+        <p class="form-desc">Choose five fictional characters from film, television, books, anime, anywhere, that you feel represent who you are as a person. This is not about who you admire; it is about who you recognise in yourself. PhinityX uses these to understand your personality, not just your words. A Harvey Specter tells us something a personality quiz never could.</p>
+      </div>
+      <div class="form-body">
+        <div class="char-slots">
+          <div class="field-group">
+            <label class="field-label">Character 1</label>
+            <input type="text" class="field-input char-input" placeholder="e.g. Harvey Specter" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Character 2</label>
+            <input type="text" class="field-input char-input" placeholder="e.g. Hermione Granger" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Character 3</label>
+            <input type="text" class="field-input char-input" placeholder="e.g. Light Yagami" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Character 4</label>
+            <input type="text" class="field-input char-input" placeholder="e.g. Amy Santiago" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Character 5</label>
+            <input type="text" class="field-input char-input" placeholder="e.g. Tony Stark" />
+          </div>
+        </div>
+      </div>
+      <div class="form-nav">
+        <button class="btn-ghost btn-back" onclick="goBack()">Back</button>
+        <button class="btn-primary" id="personalityNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 8: Writing Style Preferences
+  ════════════════════════════════════════════ -->
+  <div id="screen-style" class="screen">
+    <div class="form-screen">
+      <div class="onboard-progress">
+        <div class="onboard-step done"></div>
+        <div class="onboard-step done"></div>
+        <div class="onboard-step done"></div>
+        <div class="onboard-step active"></div>
+        <div class="onboard-step"></div>
+      </div>
+      <div class="form-header">
+        <span class="form-step-label">STEP 4 OF 5</span>
+        <h2 class="form-title">How do you like to sound?</h2>
+      </div>
+      <div class="form-body">
+        <div class="slider-group">
+          <div class="slider-labels">
+            <span>Short & punchy</span>
+            <span>Long & flowing</span>
+          </div>
+          <input type="range" id="sl-rhythm" class="styled-slider" min="0" max="100" value="50" />
+          <p class="slider-name">Sentence Rhythm</p>
+        </div>
+        <div class="slider-group">
+          <div class="slider-labels">
+            <span>Plain language</span>
+            <span>Technical & field-specific</span>
+          </div>
+          <input type="range" id="sl-vocab" class="styled-slider" min="0" max="100" value="50" />
+          <p class="slider-name">Vocabulary Comfort</p>
+        </div>
+        <div class="slider-group">
+          <div class="slider-labels">
+            <span>Conversational</span>
+            <span>Formal-academic</span>
+          </div>
+          <input type="range" id="sl-tone" class="styled-slider" min="0" max="100" value="50" />
+          <p class="slider-name">Tone</p>
+        </div>
+        <div class="field-group" style="margin-top:2rem">
+          <label class="field-label">Your biggest writing weakness</label>
+          <p class="field-sublabel">Be honest. This is the thing PhinityX will actively compensate for.</p>
+          <input type="text" id="sl-weakness" class="field-input" placeholder="e.g. going off-topic, being too vague, overexplaining, passive voice" />
+        </div>
+      </div>
+      <div class="form-nav">
+        <button class="btn-ghost btn-back" onclick="goBack()">Back</button>
+        <button class="btn-primary" id="styleNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 9: Submission Context
+  ════════════════════════════════════════════ -->
+  <div id="screen-context" class="screen">
+    <div class="form-screen">
+      <div class="onboard-progress">
+        <div class="onboard-step done"></div>
+        <div class="onboard-step done"></div>
+        <div class="onboard-step done"></div>
+        <div class="onboard-step done"></div>
+        <div class="onboard-step active"></div>
+      </div>
+      <div class="form-header">
+        <span class="form-step-label">STEP 5 OF 5</span>
+        <h2 class="form-title">Where is this going?</h2>
+        <p class="form-desc">This shapes formality, citation style, and structural expectations. You can change this at any time from your profile.</p>
+      </div>
+      <div class="form-body">
+        <div class="context-cards" id="contextCards">
+          <div class="context-card selected" data-ctx="university">
+            <span class="ctx-icon">🎓</span>
+            <span class="ctx-label">School / University Project</span>
+          </div>
+          <div class="context-card" data-ctx="personal">
+            <span class="ctx-icon">✍️</span>
+            <span class="ctx-label">Personal Project</span>
+          </div>
+          <div class="context-card" data-ctx="online">
+            <span class="ctx-icon">🌐</span>
+            <span class="ctx-label">Published Online</span>
+          </div>
+          <div class="context-card" data-ctx="editorial">
+            <span class="ctx-icon">📰</span>
+            <span class="ctx-label">Newspaper / Editorial</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-nav">
+        <button class="btn-ghost btn-back" onclick="goBack()">Back</button>
+        <button class="btn-primary" id="contextNext">Finish Setup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 10: Profile Complete
+  ════════════════════════════════════════════ -->
+  <div id="screen-complete" class="screen">
+    <div class="complete-center">
+      <div class="complete-check">✓</div>
+      <h2 class="complete-title">You're set, <span id="completeName">—</span>.</h2>
+      <p class="complete-sub">Phinity knows you now.</p>
+      <p class="complete-summary" id="completeSummary"></p>
+      <button class="btn-primary" id="btnStartWriting">Start writing</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       HOME SCREEN
+  ════════════════════════════════════════════ -->
+  <div id="screen-home" class="screen">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-top">
+          <button class="sidebar-close" id="sidebarClose">✕</button>
+          <button class="btn-primary sidebar-new" id="sidebarNewDoc">+ New Document</button>
+        </div>
+        <div class="sidebar-section-label">Sessions</div>
+        <div class="session-list" id="sessionList">
+          <p class="no-sessions">No sessions yet. Start writing.</p>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main -->
+    <div class="home-main">
+      <div class="home-topbar">
+        <button class="hamburger" id="hamburger">☰</button>
+        <span class="home-topbar-title">PhinityX</span>
+        <button class="settings-btn" id="homeSettings">⚙</button>
+      </div>
+      <div class="home-center">
+        <h1 class="home-wordmark">PhinityX</h1>
+        <p class="home-tagline">What are we writing today?</p>
+      </div>
+      <div class="input-bar" id="homeInputBar">
+        <button class="attach-btn" id="homeAttach">+</button>
+        <input type="text" id="homePrompt" class="prompt-input" placeholder="Describe your document..." />
+        <button class="send-btn" id="homeSend">→</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       DOCUMENT CREATION SCREEN
+  ════════════════════════════════════════════ -->
+  <div id="screen-doc" class="screen">
+    <div class="doc-topbar">
+      <button class="back-to-home" id="docBack">←</button>
+      <span class="doc-topbar-name" id="docTopbarName">—</span>
+      <button class="settings-btn" id="docSettings">⚙</button>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <!-- Incomplete profile warning (hidden by default) -->
+    <div class="incomplete-warning" id="incompleteWarning" style="display:none">
+      <span>⚠ Your profile is incomplete. Output may read less like you than it could. <a href="#" id="completeProfileLink">Complete profile</a></span>
+    </div>
+
+    <div class="input-bar doc-input-bar">
+      <button class="attach-btn" id="docAttach">+</button>
+      <input type="text" id="docPrompt" class="prompt-input" placeholder="Describe what you need..." />
+      <button class="send-btn" id="docSend">→</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PROFILE SCREEN
+  ════════════════════════════════════════════ -->
+  <div id="screen-profile" class="screen">
+    <div class="profile-topbar">
+      <button class="back-btn" id="profileBack">←</button>
+      <span class="profile-topbar-title">Profile</span>
+    </div>
+    <div class="profile-body">
+      <div class="profile-hero">
+        <div class="profile-avatar" id="profileAvatar">—</div>
+        <div class="profile-hero-info">
+          <h2 class="profile-name" id="profileName">—</h2>
+          <span class="profile-standing" id="profileStanding">—</span>
+          <span class="profile-tier-badge" id="profileTierBadge">Free</span>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <span>Personal</span>
+          <button class="edit-btn" data-section="personal">Edit</button>
+        </div>
+        <div class="profile-fields" id="pf-personal">
+          <div class="pf-row"><span class="pf-key">Name</span><span class="pf-val" id="pf-name">—</span></div>
+          <div class="pf-row"><span class="pf-key">DOB</span><span class="pf-val" id="pf-dob">—</span></div>
+          <div class="pf-row"><span class="pf-key">Gender</span><span class="pf-val" id="pf-gender">—</span></div>
+          <div class="pf-row"><span class="pf-key">Institution</span><span class="pf-val" id="pf-institution">—</span></div>
+          <div class="pf-row"><span class="pf-key">Field</span><span class="pf-val" id="pf-fieldStudy">—</span></div>
+          <div class="pf-row"><span class="pf-key">Occupation</span><span class="pf-val" id="pf-occupation">—</span></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <span>Academic</span>
+          <button class="edit-btn" data-section="academic">Edit</button>
+        </div>
+        <div class="profile-fields">
+          <div class="pf-row"><span class="pf-key">Current CGPA</span><span class="pf-val" id="pf-cgpa">—</span></div>
+          <div class="pf-row"><span class="pf-key">Target CGPA</span><span class="pf-val" id="pf-targetCgpa">—</span></div>
+          <div class="pf-row"><span class="pf-key">Scale</span><span class="pf-val" id="pf-scale">—</span></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <span>Personality</span>
+          <button class="edit-btn" data-section="personality">Edit</button>
+        </div>
+        <div class="pf-characters" id="pf-characters"></div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <span>Style Preferences</span>
+          <button class="edit-btn" data-section="style">Edit</button>
+        </div>
+        <div class="profile-fields">
+          <div class="pf-row"><span class="pf-key">Rhythm</span><span class="pf-val" id="pf-rhythm">—</span></div>
+          <div class="pf-row"><span class="pf-key">Vocabulary</span><span class="pf-val" id="pf-vocab">—</span></div>
+          <div class="pf-row"><span class="pf-key">Tone</span><span class="pf-val" id="pf-tone">—</span></div>
+          <div class="pf-row"><span class="pf-key">Weakness</span><span class="pf-val" id="pf-weakness">—</span></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <span>Submission Context</span>
+          <button class="edit-btn" data-section="context">Edit</button>
+        </div>
+        <div class="profile-fields">
+          <div class="pf-row"><span class="pf-key">Default</span><span class="pf-val" id="pf-context">—</span></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <span>Plan</span>
+          <button class="edit-btn" data-section="tier">Upgrade</button>
+        </div>
+        <div class="profile-fields">
+          <div class="pf-row"><span class="pf-key">Current Plan</span><span class="pf-val" id="pf-tier">Free</span></div>
+          <div class="pf-row"><span class="pf-key">Docs Used</span><span class="pf-val" id="pf-docsUsed">0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       BOTTOM SHEET: Attachment
+  ════════════════════════════════════════════ -->
+  <div class="bottom-sheet" id="attachSheet">
+    <div class="bottom-sheet-handle"></div>
+    <h3 class="bottom-sheet-title">Attach files</h3>
+    <div class="attach-options">
+      <button class="attach-option" id="attachImages">
+        <span class="attach-icon">🖼</span>
+        <div>
+          <p class="attach-opt-title">Upload Images</p>
+          <p class="attach-opt-sub">Photos of task sheets or reference material (max 5)</p>
+        </div>
+      </button>
+      <button class="attach-option" id="attachDocs">
+        <span class="attach-icon">📄</span>
+        <div>
+          <p class="attach-opt-title">Upload Documents</p>
+          <p class="attach-opt-sub">PDFs, Word, PowerPoint, lecture notes</p>
+        </div>
+      </button>
+    </div>
+    <input type="file" id="imageUpload" accept="image/*" multiple style="display:none" />
+    <input type="file" id="docUpload" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" multiple style="display:none" />
+    <button class="btn-ghost" id="attachCancel" style="margin-top:1rem;width:100%">Cancel</button>
+  </div>
+  <div class="bottom-sheet-overlay" id="attachOverlay"></div>
+
+  <!-- ═══════════════════════════════════════════
+       RE-ASSESSMENT MODAL
+  ════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="reassessOverlay" style="display:none">
+    <div class="modal">
+      <h3 class="modal-title">It's been a while since we checked in.</h3>
+      <p class="modal-body">Your writing has been evolving; your profile should too. Update your CGPA if it has changed, and consider submitting a new writing sample.</p>
+      <div class="field-group">
+        <label class="field-label">Updated CGPA <span class="optional-tag">optional</span></label>
+        <input type="number" id="ra-cgpa" class="field-input" placeholder="Your current CGPA" min="0" max="5" step="0.01" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">New writing sample <span class="optional-tag">optional</span></label>
+        <textarea id="ra-sample" class="field-textarea" rows="4" placeholder="A paragraph from something you've recently written..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="raUpdate">Update Profile</button>
+        <button class="btn-ghost" id="raDismiss">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
