@@ -12,7 +12,7 @@ const PhinityCore = (() => {
   // ── Supabase client ────────────────────────────────────
   // Replace these two values with your actual project credentials.
   // These are the PUBLIC anon key and project URL — safe to expose in frontend.
-  const SUPABASE_URL     = 'https://YOUR_PROJECT.supabase.co';
+  const SUPABASE_URL     = 'https://efwybidnclwkfznlrrlc.supabase.co';
   const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 
   // Supabase JS v2 loaded via CDN in index.html:
