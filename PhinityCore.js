@@ -13,7 +13,7 @@ const PhinityCore = (() => {
   // Replace these two values with your actual project credentials.
   // These are the PUBLIC anon key and project URL — safe to expose in frontend.
   const SUPABASE_URL     = 'https://efwybidnclwkfznlrrlc.supabase.co';
-  const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmd3liaWRuY2x3a2Z6bmxycmxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NjU5MTUsImV4cCI6MjA5NDU0MTkxNX0.v1sULdsO250TG0cjqyC_a3YqCzG6RC6VmBPSBcU3MUo';
 
   // Supabase JS v2 loaded via CDN in index.html:
   // <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
