@@ -88,13 +88,37 @@
         setTimeout(() => {
           const profile = PhinityCore.loadProfile();
           if (profile && profile.name) {
-            loadHomeScreen();
+            showScreen('screen-login', false);
           } else {
             showScreen('screen-signup', false);
           }
         }, 400);
       }
     }, 30);
+  };
+
+  // ── Screen 2B: Login (Returning User) ────────────
+  const initLogin = () => {
+    document.getElementById('loginContinue').addEventListener('click', () => {
+      const name = document.getElementById('li-name').value.trim().toLowerCase();
+      const dob  = document.getElementById('li-dob').value;
+      if (!name || !dob) {
+        alert('Please enter your name and date of birth to sign in.');
+        return;
+      }
+      const profile = PhinityCore.loadProfile();
+      const profileName = (profile?.name || '').trim().toLowerCase();
+      const profileDob  = profile?.dob || '';
+      if (profileName === name && profileDob === dob) {
+        loadHomeScreen();
+      } else {
+        alert('Those details don\'t match what we have on file. Please try again or create a new account.');
+      }
+    });
+
+    document.getElementById('loginNewAccount').addEventListener('click', () => {
+      showScreen('screen-signup', false);
+    });
   };
 
   // ── Screen 3: Sign-up ─────────────────────────────
@@ -1042,6 +1066,7 @@
 
   // ── Bootstrap ─────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    initLogin();
     initSignup();
     initWelcome();
     initAcademic();
