@@ -128,6 +128,9 @@
 
   // ── Screen 3: Sign-up ─────────────────────────────
   const initSignup = () => {
+    document.getElementById('signupBack').addEventListener('click', () => {
+      showScreen('screen-login', false);
+    });
     document.querySelectorAll('#genderSelector .seg-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('#genderSelector .seg-btn').forEach(b => b.classList.remove('active'));
