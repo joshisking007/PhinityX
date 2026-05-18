@@ -52,14 +52,13 @@
 
       <div class="login-card">
         <div class="field-group">
-          <label class="field-label">Full Name</label>
-          <input type="text" id="li-name" class="field-input" placeholder="The name you signed up with" autocomplete="name" />
+          <label class="field-label">Email</label>
+          <input type="email" id="li-email" class="field-input" placeholder="you@example.com" autocomplete="email" />
         </div>
         <div class="field-group">
-          <label class="field-label">Date of Birth</label>
-          <input type="date" id="li-dob" class="field-input" autocomplete="bday" />
+          <label class="field-label">Password</label>
+          <input type="password" id="li-password" class="field-input" placeholder="Your password" autocomplete="current-password" />
         </div>
-        <p class="login-note">PhinityX stores your profile locally on your device. These fields verify you are the person who set up this account.</p>
         <button class="btn-primary" id="loginContinue" style="width:100%;margin-top:0.5rem">Sign in</button>
         <div class="login-divider"><span>or</span></div>
         <button class="btn-ghost" id="loginNewAccount" style="width:100%">Create a new account</button>
@@ -84,6 +83,14 @@
         <div class="field-group">
           <label class="field-label">Date of Birth</label>
           <input type="date" id="su-dob" class="field-input" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input type="email" id="su-email" class="field-input" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input type="password" id="su-password" class="field-input" placeholder="At least 8 characters" autocomplete="new-password" />
         </div>
         <div class="field-group">
           <label class="field-label">Gender</label>
