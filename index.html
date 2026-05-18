@@ -515,6 +515,26 @@
     from { opacity:0; transform:translateY(6px); }
     to   { opacity:1; transform:translateY(0); }
   }
+  /* ── Signup back button ───────────────────────────── */
+  .signup-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 2rem;
+    transition: color 0.2s ease;
+  }
+  .signup-back-btn svg { transition: transform 0.2s ease; }
+  .signup-back-btn:hover { color: var(--bone-d); }
+  .signup-back-btn:hover svg { transform: translateX(-3px); }
   </style>
 </head>
 <body>
@@ -653,6 +673,12 @@
   ════════════════════════════════════════════ -->
   <div id="screen-signup" class="screen">
     <div class="form-screen">
+      <button class="signup-back-btn" id="signupBack">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Sign in instead
+      </button>
       <div class="form-header">
         <span class="form-step-label">01 / WHO ARE YOU</span>
         <h2 class="form-title">Let's begin.</h2>
