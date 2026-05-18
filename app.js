@@ -74,43 +74,26 @@
   };
 
   // ── Screen 1: Paradigm Loader ─────────────────────
+  // Pure CSS animation — hold for 3s then hand off.
   const runParadigmLoader = () => {
     showScreen('screen-paradigm', false);
-    const bar = document.getElementById('paradigmProgress');
-    let w = 0;
-    const iv = setInterval(() => {
-      w += 2.5;
-      bar.style.width = w + '%';
-      if (w >= 100) {
-        clearInterval(iv);
-        setTimeout(runPhinityLoader, 300);
-      }
-    }, 40);
+    setTimeout(runPhinityLoader, 3000);
   };
 
   // ── Screen 2: PhinityX Loader ─────────────────────
+  // Kicks off the chain-forge animation via the inlined
+  // startPxLoader() function. onComplete fires when bar hits 100%.
   const runPhinityLoader = () => {
     showScreen('screen-loader', false);
-    const bar = document.getElementById('loaderProgress');
-    let w = 0;
-    const iv = setInterval(() => {
-      w += 3;
-      bar.style.width = w + '%';
-      if (w >= 100) {
-        clearInterval(iv);
-        setTimeout(async () => {
-          // Active Supabase session → go straight to home
-          const session = await PhinityCore.getSession();
-          if (session) {
-            await loadHomeScreen();
-          } else {
-            // No session — check cache to decide login vs signup
-            const cached = PhinityCore.loadProfileCached();
-            showScreen(cached && cached.name ? 'screen-login' : 'screen-signup', false);
-          }
-        }, 400);
+    window.startPxLoader(async () => {
+      const session = await PhinityCore.getSession();
+      if (session) {
+        await loadHomeScreen();
+      } else {
+        const cached = PhinityCore.loadProfileCached();
+        showScreen(cached && cached.name ? 'screen-login' : 'screen-signup', false);
       }
-    }, 30);
+    });
   };
 
   // ── Screen 2B: Login ─────────────────────────────

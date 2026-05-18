@@ -7,37 +7,619 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- App fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Paradigm Leveling Loader fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@800&family=Barlow+Condensed:wght@300&display=swap" rel="stylesheet" />
+  <!-- PhinityX Loader fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Rajdhani:wght@600&display=swap" rel="stylesheet" />
+
+  <style>
+  /* ══════════════════════════════════════════════════════
+     PARADIGM LEVELING LOADER — inlined, scoped to #screen-paradigm
+  ══════════════════════════════════════════════════════ */
+
+  #screen-paradigm {
+    background: #000 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #pl2-ariaLoader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.65s cubic-bezier(0.4,0,0.2,1),
+                visibility 0.65s cubic-bezier(0.4,0,0.2,1);
+    will-change: opacity;
+  }
+  #pl2-ariaLoader.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .pl2-bg-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse at 30% 50%, rgba(59,130,246,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 50%, rgba(52,211,153,0.05) 0%, transparent 55%);
+  }
+  .pl2-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+    perspective: 900px;
+    transform-style: preserve-3d;
+  }
+  .pl2-chevrons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 36px;
+    position: relative;
+    transform-style: preserve-3d;
+  }
+  .pl2-ch {
+    width: 58px; height: 76px;
+    flex-shrink: 0;
+    position: relative;
+    opacity: 0;
+    will-change: transform, opacity;
+    transform-style: preserve-3d;
+  }
+  .pl2-ch svg { width: 100%; height: 100%; overflow: visible; }
+  .pl2-ch::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 12px;
+    opacity: 0;
+    will-change: opacity;
+  }
+  .pl2-ch-1::after { background: radial-gradient(ellipse at center, rgba(59,130,246,0.35) 0%, transparent 70%);  animation: pl2HaloIn 0.4s 0.85s both; }
+  .pl2-ch-2::after { background: radial-gradient(ellipse at center, rgba(56,189,248,0.30) 0%, transparent 70%);  animation: pl2HaloIn 0.4s 1.02s both; }
+  .pl2-ch-3::after { background: radial-gradient(ellipse at center, rgba(52,211,153,0.28) 0%, transparent 70%);  animation: pl2HaloIn 0.4s 1.19s both; }
+  .pl2-ch-4::after { background: radial-gradient(ellipse at center, rgba(110,231,183,0.25) 0%, transparent 70%); animation: pl2HaloIn 0.4s 1.36s both; }
+  @keyframes pl2HaloIn { from { opacity:0; } to { opacity:1; } }
+
+  .pl2-ch-1 { animation: pl2FlyIn1 0.75s cubic-bezier(0.22,1,0.36,1) 0.15s both, pl2Idle 3.2s ease-in-out 1.5s  infinite; }
+  .pl2-ch-2 { animation: pl2FlyIn2 0.75s cubic-bezier(0.22,1,0.36,1) 0.32s both, pl2Idle 3.2s ease-in-out 1.65s infinite; }
+  .pl2-ch-3 { animation: pl2FlyIn3 0.75s cubic-bezier(0.22,1,0.36,1) 0.49s both, pl2Idle 3.2s ease-in-out 1.8s  infinite; }
+  .pl2-ch-4 { animation: pl2FlyIn4 0.8s  cubic-bezier(0.22,1,0.36,1) 0.66s both, pl2Idle 3.2s ease-in-out 1.95s infinite; }
+
+  @keyframes pl2FlyIn1 {
+    0%   { opacity:0; transform:translate3d(-120px,-80px,-400px) rotateY(90deg) rotateZ(-25deg) scale(0.4); }
+    60%  { opacity:1; }
+    85%  { transform:translate3d(4px,-4px,0) rotateY(-6deg) rotateZ(2deg) scale(1.04); }
+    100% { opacity:1; transform:translate3d(0,0,0) rotateY(0) rotateZ(0) scale(1); }
+  }
+  @keyframes pl2FlyIn2 {
+    0%   { opacity:0; transform:translate3d(0,120px,-600px) rotateX(-70deg) rotateY(15deg) scale(0.2); }
+    60%  { opacity:1; }
+    85%  { transform:translate3d(0,-5px,0) rotateX(5deg) scale(1.06); }
+    100% { opacity:1; transform:translate3d(0,0,0) rotateX(0) rotateY(0) scale(1); }
+  }
+  @keyframes pl2FlyIn3 {
+    0%   { opacity:0; transform:translate3d(140px,-60px,-300px) rotateZ(180deg) rotateY(-50deg) scale(0.3); }
+    60%  { opacity:1; }
+    85%  { transform:translate3d(-3px,3px,0) rotateZ(-4deg) rotateY(4deg) scale(1.05); }
+    100% { opacity:1; transform:translate3d(0,0,0) rotateZ(0) rotateY(0) scale(1); }
+  }
+  @keyframes pl2FlyIn4 {
+    0%   { opacity:0; transform:translate3d(60px,-160px,-500px) rotateX(120deg) rotateZ(-60deg) scale(0.2); }
+    50%  { opacity:0.8; }
+    85%  { transform:translate3d(-2px,5px,0) rotateX(-5deg) rotateZ(3deg) scale(1.07); }
+    100% { opacity:1; transform:translate3d(0,0,0) rotateX(0) rotateZ(0) scale(1); }
+  }
+  @keyframes pl2Idle {
+    0%,100% { transform:translateX(0) translateY(0) scale(1); }
+    50%     { transform:translateX(2px) translateY(-3px) scale(1.03); }
+  }
+
+  .pl2-chevrons-shadow {
+    width: 220px; height: 16px;
+    background: radial-gradient(ellipse, rgba(52,211,153,0.25) 0%, transparent 70%);
+    margin-bottom: 4px;
+    animation: pl2ShadowIn 0.6s 1.2s both;
+    transform-origin: center;
+    will-change: opacity, transform;
+  }
+  @keyframes pl2ShadowIn {
+    from { opacity:0; transform:scaleX(0.4); }
+    to   { opacity:1; transform:scaleX(1); }
+  }
+
+  .pl2-wordmark {
+    text-align: center;
+    position: relative;
+    margin-top: 8px;
+    transform: translateZ(0);
+  }
+  .pl2-paradigm {
+    font-family: 'Barlow', 'Arial Black', sans-serif;
+    font-weight: 800;
+    font-size: clamp(48px, 12vw, 68px);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    background: linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #6ee7b7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 22px rgba(59,130,246,0.45));
+    animation: pl2FadeUp 0.9s 0.9s cubic-bezier(0.22,1,0.36,1) both;
+    will-change: transform, opacity;
+  }
+  .pl2-divider {
+    width: 100%; height: 2px;
+    position: relative;
+    margin: 12px 0;
+    background: linear-gradient(90deg, transparent, #3b82f6 30%, #34d399 70%, transparent);
+    border-radius: 2px;
+    overflow: hidden;
+    transform-origin: left center;
+    animation: pl2DividerExpand 0.7s 1.25s cubic-bezier(0.22,1,0.36,1) both;
+    will-change: transform, opacity;
+  }
+  @keyframes pl2DividerExpand {
+    from { transform:scaleX(0); opacity:0; }
+    to   { transform:scaleX(1); opacity:1; }
+  }
+  .pl2-divider-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8) 50%, transparent);
+    animation: pl2DividerShine 0.9s 1.6s cubic-bezier(0.4,0,0.2,1) both;
+    will-change: transform;
+  }
+  @keyframes pl2DividerShine {
+    from { transform:translateX(-100%); }
+    to   { transform:translateX(200%); }
+  }
+  .pl2-leveling {
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 300;
+    font-size: clamp(16px, 4.5vw, 26px);
+    letter-spacing: 0.45em;
+    color: #9ca3af;
+    animation: pl2FadeUp 0.7s 1.4s cubic-bezier(0.22,1,0.36,1) both;
+    will-change: transform, opacity;
+  }
+  @keyframes pl2FadeUp {
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     PHINITYX V5 LOADER — inlined, scoped to #screen-loader
+  ══════════════════════════════════════════════════════ */
+
+  #screen-loader {
+    background: #000 !important;
+    overflow: hidden !important;
+  }
+
+  .px-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  .px-char-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 60% top;
+    display: block;
+  }
+  .px-vignette {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 78% 18%, rgba(0,0,0,0.30) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 95%, transparent 25%, rgba(0,0,0,0.28) 80%);
+    pointer-events: none; z-index: 2;
+  }
+  .px-scanlines {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom, transparent 0, transparent 3px,
+      rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px
+    );
+    z-index: 3; pointer-events: none;
+  }
+  .px-edge-glow {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(180deg, transparent 5%, rgba(192,21,42,0.6) 50%, transparent 95%);
+    z-index: 12; opacity: 0; animation: pxFIn 0.5s 1.6s ease forwards;
+  }
+  .px-edge-glow--l { left: 0; }
+  .px-edge-glow--r { right: 0; box-shadow: 0 0 10px rgba(192,21,42,0.4); }
+  @keyframes pxFIn { to { opacity:1; } }
+
+  .px-corner {
+    position: absolute; width: 32px; height: 32px; z-index: 12;
+    opacity: 0; animation: pxCIn 0.4s ease forwards;
+  }
+  .px-corner svg { width: 100%; height: 100%; }
+  .px-corner--tl { top:10px; left:10px;  animation-delay:0.3s; }
+  .px-corner--tr { top:10px; right:10px; transform:scaleX(-1); animation-delay:0.4s; }
+  .px-corner--bl { bottom:10px; left:10px;  transform:scaleY(-1); animation-delay:0.5s; }
+  .px-corner--br { bottom:10px; right:10px; transform:scale(-1,-1); animation-delay:0.6s; }
+  @keyframes pxCIn { to { opacity:1; } }
+
+  .px-hud-tr {
+    position: absolute;
+    top: 14px; right: 48px;
+    z-index: 20;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+    opacity: 0; animation: pxFadeUp 0.5s 1.0s ease forwards;
+  }
+  .px-hud-sys {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(7px,1.9vw,9px);
+    letter-spacing: 2.5px;
+    color: rgba(255,34,68,0.75);
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .px-hud-dot {
+    width:4px; height:4px; border-radius:50%;
+    background:#4ade80; box-shadow:0 0 5px #4ade80;
+    animation: pxBlinkA 2.4s 1.0s ease infinite;
+  }
+  .px-hud-ver {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(6px,1.6vw,8px);
+    letter-spacing: 1.5px;
+    color: rgba(255,100,100,0.4);
+    text-transform: uppercase;
+  }
+  .px-hud-ts {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(6px,1.6vw,8px);
+    letter-spacing: 1px;
+    color: rgba(255,80,80,0.3);
+  }
+  .px-title-zone {
+    position: absolute;
+    bottom: calc(20% + 14px); right: 4%;
+    z-index: 20;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+    padding: 10px 10px 10px 20px;
+    border-right: 2.5px solid rgba(255,34,68,0.85);
+    background: linear-gradient(250deg, rgba(0,0,0,0.78) 0%, rgba(5,0,2,0.55) 65%, transparent 100%);
+    opacity: 0;
+    animation: pxPanelIn 0.7s 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+    max-width: 70vw;
+  }
+  @keyframes pxPanelIn {
+    from { opacity:0; transform:translateX(16px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+  .px-logo-word {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 9.5vw;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    white-space: nowrap;
+    position: relative;
+    display: inline-block;
+    background: linear-gradient(160deg, #ffffff 0%, #ffa0a0 10%, #ff2244 28%, #900010 52%, #c00020 66%, #ff5577 82%, #ffffff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-size: 200% 200%;
+    filter:
+      drop-shadow(0 0 3px rgba(255,255,255,0.8))
+      drop-shadow(0 0 8px rgba(255,34,68,1))
+      drop-shadow(0 0 22px rgba(255,34,68,0.7))
+      drop-shadow(0 0 50px rgba(192,0,30,0.4));
+    animation:
+      pxLogoIn    1s   0.5s cubic-bezier(0.16,1,0.3,1) both,
+      pxGradShift 4s   1.8s ease-in-out infinite alternate,
+      pxGlowShift 3s   1.8s ease-in-out infinite alternate;
+  }
+  @keyframes pxLogoIn {
+    from { opacity:0; transform:translateX(-18px) skewX(-6deg); filter:blur(16px); }
+    to   { opacity:1; transform:translateX(0) skewX(0); filter:blur(0); }
+  }
+  @keyframes pxGradShift {
+    0%   { background-position:0% 50%; }
+    100% { background-position:100% 50%; }
+  }
+  @keyframes pxGlowShift {
+    0%   { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 9px #ff2244) drop-shadow(0 0 24px rgba(255,34,68,0.65)); }
+    50%  { filter: drop-shadow(0 0 5px rgba(255,140,0,0.9)) drop-shadow(0 0 16px #ff4400) drop-shadow(0 0 45px rgba(255,60,0,0.5)); }
+    100% { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px #ff2244) drop-shadow(0 0 70px rgba(192,0,30,0.3)); }
+  }
+  .px-logo-word::before {
+    content: attr(data-text);
+    position:absolute; top:0; left:0;
+    font-family:'Orbitron',monospace; font-weight:900; font-size:inherit; letter-spacing:inherit;
+    white-space:nowrap; -webkit-text-fill-color:#00ffcc;
+    opacity:0; pointer-events:none;
+    animation: pxGlitchC 5s 3s infinite;
+  }
+  .px-logo-word::after {
+    content: attr(data-text);
+    position:absolute; top:0; left:0;
+    font-family:'Orbitron',monospace; font-weight:900; font-size:inherit; letter-spacing:inherit;
+    white-space:nowrap; -webkit-text-fill-color:#ff0055;
+    opacity:0; pointer-events:none;
+    animation: pxGlitchR 5s 3.2s infinite;
+  }
+  @keyframes pxGlitchC {
+    0%,91%,100% { opacity:0; transform:none; }
+    91.5% { opacity:0.7; transform:translate(-3px,1px) skewX(-9deg); clip-path:polygon(0 10%,100% 10%,100% 42%,0 42%); }
+    92%   { opacity:0; }
+    94%   { opacity:0.45; transform:translate(2px,-2px) skewX(6deg); clip-path:polygon(0 58%,100% 58%,100% 84%,0 84%); }
+    94.5% { opacity:0; }
+  }
+  @keyframes pxGlitchR {
+    0%,89%,100% { opacity:0; transform:none; }
+    89.5% { opacity:0.6; transform:translate(3px,-1px) skewX(11deg); clip-path:polygon(0 4%,100% 4%,100% 38%,0 38%); }
+    90%   { opacity:0; }
+    92.5% { opacity:0.4; transform:translate(-2px,2px) skewX(-5deg); clip-path:polygon(0 52%,100% 52%,100% 80%,0 80%); }
+    93%   { opacity:0; }
+  }
+  .px-logo-divider {
+    height: 2px; width: 0%;
+    background: linear-gradient(270deg, #ff2244 0%, #ff6a00 60%, transparent 100%);
+    box-shadow: 0 0 8px #ff2244, 0 0 18px rgba(255,34,68,0.4);
+    position: relative; overflow: hidden;
+    animation: pxDivLine 0.6s 1.3s ease forwards;
+  }
+  @keyframes pxDivLine { to { width:100%; } }
+  .px-logo-divider::after {
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.75) 50%, transparent);
+    transform: translateX(-100%);
+    animation: pxDivShimmer 2.4s 2.4s ease-in-out infinite;
+  }
+  @keyframes pxDivShimmer {
+    0%   { transform:translateX(-100%); }
+    100% { transform:translateX(320%); }
+  }
+  .px-logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(8px,2.4vw,11px);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: rgba(255,210,210,0.92);
+    text-shadow: 0 0 5px rgba(255,80,80,0.9), 0 0 14px rgba(255,34,68,0.6);
+    opacity: 0;
+    animation: pxSubIn 0.5s 1.6s ease forwards;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .px-logo-sub::before {
+    content:'◆'; color:#ff2244; font-size:7px;
+    text-shadow:0 0 6px #ff2244; flex-shrink:0;
+  }
+  @keyframes pxSubIn {
+    from { opacity:0; transform:translateX(10px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+  .px-loader-panel {
+    position: absolute;
+    bottom:0; left:0; right:0; height:20%;
+    background: linear-gradient(180deg, transparent 0%, rgba(3,0,1,0.72) 25%, rgba(2,0,0,0.95) 55%, #000 100%);
+    z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    padding-bottom: 14px; gap: 6px;
+  }
+  .px-edge-line {
+    position:absolute; bottom:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent 0%, #ff2244 20%, #ff6a00 50%, #ff2244 80%, transparent 100%);
+    box-shadow: 0 0 12px #ff2244, 0 0 28px rgba(255,34,68,0.35);
+    opacity:0; animation: pxFIn 0.5s 1.8s ease forwards;
+  }
+  .px-forge-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(8px,2.2vw,10px);
+    color: rgba(255,90,90,0.65);
+    letter-spacing: 3px; text-transform: uppercase; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+    opacity: 0; animation: pxFadeUp 0.5s 2.0s ease forwards;
+  }
+  #pxStatusText { transition: opacity 0.4s ease; }
+  .px-blink {
+    width:5px; height:5px; background:#ff2244; border-radius:50%;
+    box-shadow:0 0 6px #ff2244;
+    animation: pxBlinkA 1.1s 2.0s ease infinite; flex-shrink:0;
+  }
+  @keyframes pxBlinkA { 0%,100% { opacity:1; } 50% { opacity:0.1; } }
+  .px-chain-loader {
+    width: 86%; opacity:0; animation: pxFadeUp 0.4s 2.2s ease forwards;
+  }
+  .px-chain-row { display:flex; align-items:center; gap:8px; width:100%; }
+  .px-chain-track {
+    flex:1; height:22px;
+    display:flex; align-items:center; gap:2px; position:relative;
+  }
+  .px-link {
+    flex:1; height:100%;
+    border:1.5px solid rgba(255,34,68,0.18);
+    border-radius:2px;
+    background:rgba(255,20,40,0.04);
+    position:relative;
+  }
+  .px-link.lit {
+    background: linear-gradient(135deg, #ff1a35, #9b0010, #ff4422);
+    border-color: #ff2244;
+    box-shadow: 0 0 6px rgba(255,34,68,0.9), 0 0 16px rgba(255,34,68,0.4), inset 0 1px 0 rgba(255,180,180,0.3);
+    animation: pxLinkForge 0.13s ease forwards;
+  }
+  .px-link.lit.idle-pulse { animation: pxLinkIdlePulse 2.6s ease-in-out infinite; }
+  @keyframes pxLinkIdlePulse {
+    0%,100% { box-shadow: 0 0 6px rgba(255,34,68,0.9), 0 0 16px rgba(255,34,68,0.4), inset 0 1px 0 rgba(255,180,180,0.3); }
+    50%     { box-shadow: 0 0 12px rgba(255,34,68,1),  0 0 32px rgba(255,34,68,0.6), inset 0 1px 0 rgba(255,200,200,0.5); }
+  }
+  .px-link.sparking::after {
+    content:''; position:absolute; right:-3px; top:-5px; width:8px; height:32px;
+    background:radial-gradient(ellipse, #fff 0%, #ffaa00 30%, transparent 70%);
+    border-radius:50%; animation: pxSparkFade 0.28s ease forwards;
+    pointer-events:none; z-index:5;
+  }
+  @keyframes pxLinkForge {
+    0%   { transform:scaleY(0.5); filter:brightness(4); }
+    60%  { transform:scaleY(1.12); }
+    100% { transform:scaleY(1); filter:brightness(1); }
+  }
+  @keyframes pxSparkFade {
+    0%   { opacity:1; transform:scaleY(1.6) scaleX(0.5); }
+    100% { opacity:0; transform:scaleY(0.2) scaleX(2) translateY(-8px); }
+  }
+  .px-power-core {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%); width:28px; height:28px;
+    z-index:3; pointer-events:none;
+  }
+  .px-core-inner {
+    width:100%; height:100%; border-radius:50%;
+    background:radial-gradient(circle, #fff 0%, #ff2244 40%, transparent 72%);
+    animation: pxCorePulse 1.3s ease-in-out infinite;
+    box-shadow:0 0 14px #ff2244, 0 0 30px rgba(255,34,68,0.5);
+  }
+  @keyframes pxCorePulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.35); } }
+  .px-forge-percent {
+    font-family:'Orbitron',monospace; font-weight:700;
+    font-size:clamp(11px,3vw,15px); color:#ff2244;
+    letter-spacing:1px;
+    text-shadow:0 0 10px #ff2244, 0 0 24px rgba(255,34,68,0.5);
+    width:4ch; text-align:right; flex-shrink:0;
+    opacity:0; animation:pxFadeUp 0.4s 2.3s ease forwards;
+  }
+  .px-forge-label {
+    font-family:'Rajdhani',sans-serif; font-weight:600;
+    font-size:clamp(8px,2.1vw,10px);
+    letter-spacing:3px; color:rgba(255,60,80,0.45);
+    text-transform:uppercase; white-space:nowrap;
+    opacity:0; animation:pxFadeUp 0.4s 2.5s ease forwards;
+  }
+  @keyframes pxFadeUp {
+    from { opacity:0; transform:translateY(6px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  </style>
 </head>
 <body>
 
   <!-- ═══════════════════════════════════════════
-       SCREEN 1: Paradigm Leveling Loader
+       SCREEN 1: Paradigm Leveling Loader (inlined)
   ════════════════════════════════════════════ -->
   <div id="screen-paradigm" class="screen active">
-    <div class="paradigm-center">
-      <div class="chevron-assembly" id="chevronAssembly">
-        <div class="chevron chevron-top" style="--c:#C1121F"></div>
-        <div class="chevron chevron-right" style="--c:#E9C46A"></div>
-        <div class="chevron chevron-bottom" style="--c:#2A9D8F"></div>
-        <div class="chevron chevron-left" style="--c:#E76F51"></div>
-      </div>
-      <p class="paradigm-label">PARADIGM LEVELING</p>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar-fill" id="paradigmProgress"></div>
+    <div id="pl2-ariaLoader">
+      <div class="pl2-bg-glow"></div>
+      <div class="pl2-loader">
+        <div class="pl2-chevrons">
+          <div class="pl2-ch pl2-ch-1">
+            <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pl2-lg1" x1="0" y1="0" x2="60" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1d4ed8"/>
+                </linearGradient>
+                <filter id="pl2-glow1"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <path d="M8 4 L52 40 L8 76" stroke="url(#pl2-lg1)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#pl2-glow1)"/>
+            </svg>
+          </div>
+          <div class="pl2-ch pl2-ch-2">
+            <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pl2-lg2" x1="0" y1="0" x2="60" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#34d399"/>
+                </linearGradient>
+                <filter id="pl2-glow2"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <path d="M8 4 L52 40 L8 76" stroke="url(#pl2-lg2)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#pl2-glow2)"/>
+            </svg>
+          </div>
+          <div class="pl2-ch pl2-ch-3">
+            <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pl2-lg3" x1="0" y1="0" x2="60" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#34d399"/>
+                </linearGradient>
+                <filter id="pl2-glow3"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <path d="M8 4 L52 40 L8 76" stroke="url(#pl2-lg3)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#pl2-glow3)"/>
+            </svg>
+          </div>
+          <div class="pl2-ch pl2-ch-4">
+            <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pl2-lg4" x1="0" y1="0" x2="60" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#a7f3d0"/>
+                </linearGradient>
+                <filter id="pl2-glow4"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <path d="M8 4 L52 40 L8 76" stroke="url(#pl2-lg4)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#pl2-glow4)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="pl2-chevrons-shadow"></div>
+        <div class="pl2-wordmark">
+          <div class="pl2-paradigm">PARADIGM</div>
+          <div class="pl2-divider"><div class="pl2-divider-shine"></div></div>
+          <div class="pl2-leveling">L E V E L I N G</div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════
-       SCREEN 2: PhinityX Loader
+       SCREEN 2: PhinityX Loader (inlined)
   ════════════════════════════════════════════ -->
   <div id="screen-loader" class="screen">
-    <div class="loader-center">
-      <h1 class="phinity-wordmark">PhinityX</h1>
-      <p class="loader-sub">Initializing Phinity.</p>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar-fill" id="loaderProgress"></div>
+    <div class="px-frame">
+      <img class="px-char-img" src="https://raw.githubusercontent.com/joshisking007/PhinityX/main/phinityx-loader-pic.png" alt="PhinityX" />
+      <div class="px-vignette"></div>
+      <div class="px-scanlines"></div>
+      <div class="px-edge-glow px-edge-glow--l"></div>
+      <div class="px-edge-glow px-edge-glow--r"></div>
+      <div class="px-corner px-corner--tl"><svg viewBox="0 0 36 36" fill="none"><path d="M2 18 L2 2 L18 2" stroke="#ff2244" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <div class="px-corner px-corner--tr"><svg viewBox="0 0 36 36" fill="none"><path d="M2 18 L2 2 L18 2" stroke="#ff2244" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <div class="px-corner px-corner--bl"><svg viewBox="0 0 36 36" fill="none"><path d="M2 18 L2 2 L18 2" stroke="#ff2244" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <div class="px-corner px-corner--br"><svg viewBox="0 0 36 36" fill="none"><path d="M2 18 L2 2 L18 2" stroke="#ff2244" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <div class="px-hud-tr">
+        <div class="px-hud-sys"><span class="px-hud-dot"></span>SYS.ONLINE</div>
+        <div class="px-hud-ver">v7.∞ · build 001</div>
+        <div class="px-hud-ts" id="pxHudTs"></div>
+      </div>
+      <div class="px-title-zone">
+        <div class="px-logo-word" data-text="PhinityX">PhinityX</div>
+        <div class="px-logo-divider"></div>
+        <div class="px-logo-sub">Paradigm Leveling</div>
+      </div>
+      <div class="px-loader-panel">
+        <div class="px-edge-line"></div>
+        <div class="px-forge-status">
+          <span class="px-blink"></span>
+          <span id="pxStatusText">INITIALISING SYSTEMS</span>
+          <span class="px-blink" style="animation-delay:0.6s"></span>
+        </div>
+        <div class="px-chain-loader">
+          <div class="px-chain-row">
+            <div class="px-chain-track" id="pxChainTrack"></div>
+            <div class="px-forge-percent" id="pxPct">0%</div>
+          </div>
+        </div>
+        <div class="px-forge-label">Combat Protocol — Reality Compiler v7.∞</div>
       </div>
     </div>
   </div>
@@ -636,6 +1218,93 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════
+       LOADER SCRIPTS (inlined — no external files needed)
+  ════════════════════════════════════════════ -->
+  <script>
+  // ── PhinityX Chain Forge — runs when screen-loader becomes active ──────────
+  // Called by app.js runPhinityLoader() after it calls showScreen('screen-loader')
+  window._pxLoaderStarted = false;
+  window.startPxLoader = function(onComplete) {
+    if (window._pxLoaderStarted) return;
+    window._pxLoaderStarted = true;
+
+    // Live clock
+    (function tickClock() {
+      const el = document.getElementById('pxHudTs');
+      if (el) {
+        const n = new Date();
+        el.textContent =
+          String(n.getHours()).padStart(2,'0') + ':' +
+          String(n.getMinutes()).padStart(2,'0') + ':' +
+          String(n.getSeconds()).padStart(2,'0');
+      }
+      setTimeout(tickClock, 1000);
+    })();
+
+    const STATUS_MSGS = [
+      'INITIALISING SYSTEMS','LOADING ASSET CACHE','BINDING CHAIN FORGE',
+      'COMPILING SHADERS','SYNCING REALITY MESH','CALIBRATING COMBAT AI',
+      'FORGING REALITY','SYSTEMS ONLINE',
+    ];
+    const statusEl = document.getElementById('pxStatusText');
+    function setStatus(idx) {
+      statusEl.style.opacity = '0';
+      setTimeout(() => {
+        statusEl.textContent = STATUS_MSGS[idx] || STATUS_MSGS[STATUS_MSGS.length - 1];
+        statusEl.style.opacity = '1';
+      }, 220);
+    }
+
+    const LINKS = 28;
+    const track = document.getElementById('pxChainTrack');
+    const pctEl = document.getElementById('pxPct');
+    for (let i = 0; i < LINKS; i++) {
+      const l = document.createElement('div');
+      l.className = 'px-link'; l.id = 'pxLnk' + i;
+      track.appendChild(l);
+    }
+    const core = document.createElement('div');
+    core.className = 'px-power-core';
+    core.innerHTML = '<div class="px-core-inner"></div>';
+    track.appendChild(core);
+
+    let filled = 0;
+    const center = Math.floor(LINKS / 2);
+    let li = center - 1, ri = center;
+    const STATUS_GATES = { 4:1, 8:2, 12:3, 16:4, 20:5, 24:6, 28:7 };
+
+    function tick() {
+      if (filled >= LINKS) {
+        pctEl.textContent = '100%';
+        pctEl.style.color = '#fff';
+        pctEl.style.textShadow = '0 0 20px #fff, 0 0 50px #ff2244';
+        document.querySelectorAll('.px-link').forEach((el, i) => {
+          setTimeout(() => {
+            el.style.filter = 'brightness(4)';
+            setTimeout(() => {
+              el.style.filter = '';
+              el.style.transition = 'filter 0.7s';
+              el.classList.add('idle-pulse');
+            }, 80);
+          }, i * 14);
+        });
+        setTimeout(onComplete, 900);
+        return;
+      }
+      if (li >= 0) { const el = document.getElementById('pxLnk'+li); if(el){el.classList.add('lit','sparking');} li--; filled++; }
+      if (ri < LINKS) { const el = document.getElementById('pxLnk'+ri); if(el){el.classList.add('lit','sparking');} ri++; filled++; }
+      const pct = Math.min(100, Math.round((filled/LINKS)*100));
+      pctEl.textContent = pct + '%';
+      if (STATUS_GATES[filled] !== undefined) setStatus(STATUS_GATES[filled]);
+      setTimeout(() => { document.querySelectorAll('.px-link.sparking').forEach(e => e.classList.remove('sparking')); }, 300);
+      const d = filled<=4 ? 340 : filled<=10 ? 230 : filled<=18 ? 170 : filled<=24 ? 110 : 65;
+      setTimeout(tick, d);
+    }
+    setTimeout(tick, 2800);
+  };
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="PhinityCore.js"></script>
