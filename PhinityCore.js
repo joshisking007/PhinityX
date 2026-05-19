@@ -416,11 +416,17 @@ const PhinityCore = (() => {
     const ok = await canGenerateDoc();
     if (!ok) throw Object.assign(new Error('Monthly document limit reached for your plan.'), { code: 'limit_reached' });
 
+    // Pass full fingerprint so edge function builds the complete Part II personality prompt
+    const profile = loadProfileCached();
+    const fp      = profile ? buildFingerprint(profile) : null;
+
     const result = await callEdge({
-      action: 'generate',
-      prompt: userPrompt,
+      action:            'generate',
+      prompt:            userPrompt,
       attachmentContext: attachmentContext || null,
-      attachments: attachments || [],
+      attachments:       attachments || [],
+      fingerprint:       fp,
+      writingSample:     profile ? (profile.writingSample || null) : null,
     });
 
     // Refresh profile cache (updated counters)
