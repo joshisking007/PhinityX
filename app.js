@@ -63,6 +63,23 @@
       .replace(/'/g, '&#039;');
   };
 
+  // Turns a raw prompt into a short readable session title (max ~50 chars)
+  const deriveSessionTitle = (prompt) => {
+    if (!prompt) return 'Untitled';
+    // Strip common filler prefixes people type
+    let t = prompt
+      .replace(/^(write|generate|create|draft|help me (write|with)|can you write|i need|make me|produce)\s+/i, '')
+      .replace(/^(a|an|the)\s+/i, '')
+      .trim();
+    // Capitalise first letter
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    // Truncate at word boundary around 50 chars
+    if (t.length > 52) {
+      t = t.slice(0, 50).replace(/\s+\S*$/, '') + '…';
+    }
+    return t || 'Untitled';
+  };
+
   const scrollChat = () => {
     const area = document.getElementById('chatArea');
     if (area) setTimeout(() => { area.scrollTop = area.scrollHeight; }, 50);
@@ -514,7 +531,17 @@
 
       // generateDocument returns { document, sessionId }
       currentDocumentText = result.document || result;
-      if (result.sessionId) currentSessionId = result.sessionId;
+      if (result.sessionId) {
+        currentSessionId = result.sessionId;
+        // Patch the topic so the sidebar shows a meaningful title
+        const title = deriveSessionTitle(promptText);
+        PhinityCore.db
+          .from('sessions')
+          .update({ topic: title })
+          .eq('id', currentSessionId)
+          .then(() => {})
+          .catch(() => {}); // non-blocking, best-effort
+      }
 
       let driftResult = null;
       try {
