@@ -834,55 +834,47 @@ a { color: var(--crimson-l); text-decoration: none; }
   gap: 0.5rem;
   position: relative;
   overflow: hidden;
-}
-
-/* Character image layer — blend mode darkens it into the black background */
-.home-center::after {
-  content: '';
-  position: absolute;
-  inset: 0;
   background-image: url('https://raw.githubusercontent.com/joshisking007/PhinityX/main/home-bg.png');
   background-repeat: no-repeat;
-  background-size: auto 92%;
+  background-size: auto 95%;
   background-position: center bottom;
-  mix-blend-mode: luminosity;
-  opacity: 0.35;
-  z-index: 0;
 }
 
-/* Extra darkening vignette on top of the blended image */
+/* Dark oval behind the text only — image stays untouched everywhere else */
 .home-center::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to bottom, rgba(8,8,8,0.6) 0%, transparent 35%, transparent 65%, rgba(8,8,8,0.8) 100%);
-  z-index: 1;
+    radial-gradient(ellipse 70% 28% at 50% 52%, rgba(0,0,0,0.75) 0%, transparent 100%),
+    linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 25%, transparent 75%, rgba(0,0,0,0.55) 100%);
   pointer-events: none;
+  z-index: 0;
 }
 
-/* Text sits above both layers */
 .home-wordmark,
 .home-tagline {
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 .home-wordmark {
   font-family: var(--font-display);
   font-size: clamp(3.5rem, 15vw, 6rem);
   font-weight: 300;
-  color: rgba(255,255,255,0.07);
+  color: var(--bone);
   letter-spacing: -0.02em;
   line-height: 1;
   user-select: none;
+  text-shadow: 0 2px 24px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,1);
 }
 .home-tagline {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.2em;
-  color: var(--text-3);
+  color: var(--bone-d);
   text-transform: uppercase;
+  text-shadow: 0 1px 8px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1);
 }
 
 /* ════════════════════════════════════════════════
