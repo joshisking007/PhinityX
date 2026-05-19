@@ -128,6 +128,9 @@
 
   // ── Screen 3: Sign-up ─────────────────────────────
   const initSignup = () => {
+    document.getElementById('signupBack').addEventListener('click', () => {
+      showScreen('screen-login', false);
+    });
     document.querySelectorAll('#genderSelector .seg-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('#genderSelector .seg-btn').forEach(b => b.classList.remove('active'));
@@ -380,7 +383,7 @@
       const d = new Date(s.created_at || s.timestamp);
       const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
       return `<button class="session-item" data-id="${s.id}">
-        <span class="session-item-title">${escapeHtml(s.topic || (s.prompt ? s.prompt.slice(0, 40) : 'Untitled'))}</span>
+        <span class="session-item-title">${escapeHtml(s.topic || s.prompt || 'Untitled')}</span>
         <span class="session-item-meta">
           <span>${dateStr}</span>
           <span>${s.context || 'university'}</span>
@@ -431,23 +434,14 @@
     if (!session) return;
 
     currentSessionId    = sessionId;
-    // DB column is document_text, not document
-    currentDocumentText = session.document_text || session.document || '';
-    currentPulseData    = session.pulse_review || null;
+    currentDocumentText = session.document;
+    currentPulseData    = session.pulse_review;
 
     await showDocScreen();
     clearChat();
 
-    if (session.prompt) appendUserMessage(session.prompt);
-
-    if (currentDocumentText) {
-      const driftResult = session.drift_score
-        ? { score: session.drift_score, reason: session.drift_reason || '' }
-        : null;
-      appendDocumentBlock(currentDocumentText, currentPulseData, driftResult);
-    } else {
-      appendPhinityMessage('This session has no saved document. Start a new prompt to generate one.');
-    }
+    if (session.prompt)   appendUserMessage(session.prompt);
+    if (session.document) appendDocumentBlock(session.document, session.pulse_review, session.drift_score);
   };
 
   // ── Doc Screen ────────────────────────────────────
@@ -488,6 +482,16 @@
     }
 
     const attachmentContext = buildAttachmentContextString();
+
+    // ── Detection risk warning ─────────────────────
+    const profile = PhinityCore.loadProfileCached();
+    const tone  = parseInt(profile?.style_tone  || 50);
+    const vocab = parseInt(profile?.style_vocab || 50);
+    if (tone >= 66 || vocab >= 66) {
+      const proceed = await showDetectionRiskWarning(tone, vocab);
+      if (!proceed) return;
+    }
+
     const thinkingEl = appendThinkingState();
 
     const statuses = [
@@ -520,24 +524,39 @@
       }
 
       appendDocumentBlock(currentDocumentText, null, driftResult);
-
-      // ── Derive and save session title from prompt ──
-      try {
-        const titleWords = promptText.trim().split(/\s+/).slice(0, 6).join(' ');
-        const title = titleWords.charAt(0).toUpperCase() + titleWords.slice(1);
-        if (currentSessionId) {
-          await PhinityCore.db.from('sessions')
-            .update({ topic: title })
-            .eq('id', currentSessionId);
-        }
-      } catch (_) { /* non-blocking */ }
-
       await renderSessionSidebar();
       clearAttachments();
+      PhinityCore.clearProfileOverride();
+
+      // ── Passive tracking ───────────────────────
+      // Increment session count and log drift for fingerprint evolution
+      try {
+        const profile = PhinityCore.loadProfileCached();
+        const newCount = (profile?.sessionCount || 0) + 1;
+        await PhinityCore.updateProfileField('sessionCount', newCount);
+
+        // Log drift score to drift_log table for fingerprint evolution
+        if (currentSessionId && driftResult) {
+          await PhinityCore.db.from('drift_log').insert({
+            user_id:    (await PhinityCore.getUser()).id,
+            session_id: currentSessionId,
+            score:      driftResult.score || 'Moderate',
+            reason:     driftResult.reason || '',
+            logged_at:  new Date().toISOString(),
+          });
+        }
+
+        // 5-session re-assessment check (Core + Pro only)
+        await checkReassessment();
+      } catch (trackErr) {
+        // Non-blocking — tracking errors never surface to user
+        console.warn('Passive tracking error:', trackErr);
+      }
 
     } catch (err) {
       clearInterval(statusIv);
       thinkingEl.remove();
+      PhinityCore.clearProfileOverride();
       if (err.code === 'limit_reached') {
         appendLimitNotice();
       } else {
@@ -568,6 +587,60 @@
       attachBtn.style.marginLeft = '0.5rem';
       attachBtn.addEventListener('click', () => { openAttachSheet(); resolve(false); });
       msgEl.querySelector('.chat-bubble').appendChild(attachBtn);
+    });
+  };
+
+  // ── Detection risk warning ──────────────────────
+  const showDetectionRiskWarning = (tone, vocab) => {
+    return new Promise((resolve) => {
+      const isFormal       = tone  >= 66;
+      const isSophisticated = vocab >= 66;
+
+      let reason = '';
+      if (isFormal && isSophisticated)
+        reason = 'Your style is set to formal and sophisticated vocabulary. That produces stronger writing but sits closer to patterns AI detectors are trained on.';
+      else if (isFormal)
+        reason = 'Your tone is set to formal-academic. That register tends to score higher on AI detectors.';
+      else
+        reason = 'Your vocabulary is set to sophisticated. Complex word choice can trigger detection tools.';
+
+      const msgEl = appendPhinityMessage(
+        `Heads up — ${reason} If you're submitting somewhere that runs detection, I can dial back the formality for this one. Otherwise we're good.`,
+        true
+      );
+
+      const bubble = msgEl.querySelector('.chat-bubble');
+
+      const keepBtn = document.createElement('button');
+      keepBtn.className = 'inline-action';
+      keepBtn.textContent = 'Keep my style';
+      keepBtn.addEventListener('click', () => {
+        keepBtn.textContent = 'Got it. Generating…';
+        keepBtn.disabled = true;
+        adjustBtn.disabled = true;
+        resolve(true);
+      });
+
+      const adjustBtn = document.createElement('button');
+      adjustBtn.className = 'inline-action';
+      adjustBtn.style.marginLeft = '0.5rem';
+      adjustBtn.textContent = 'Adjust for detection';
+      adjustBtn.addEventListener('click', () => {
+        const cached = PhinityCore.loadProfileCached();
+        if (cached) {
+          cached._detectionOverride = true;
+          cached.style_tone  = Math.min(parseInt(cached.style_tone  || 50), 55);
+          cached.style_vocab = Math.min(parseInt(cached.style_vocab || 50), 45);
+          PhinityCore.patchProfileCache(cached);
+        }
+        adjustBtn.textContent = 'Adjusting style…';
+        adjustBtn.disabled = true;
+        keepBtn.disabled = true;
+        resolve(true);
+      });
+
+      bubble.appendChild(keepBtn);
+      bubble.appendChild(adjustBtn);
     });
   };
 
@@ -604,6 +677,7 @@
     const el = document.createElement('div');
     el.className = 'thinking-state';
     el.innerHTML = `
+      <div class="thinking-line"></div>
       <div class="thinking-dots"><span></span><span></span><span></span></div>
       <div class="thinking-status">Reading your profile</div>
     `;
@@ -614,74 +688,86 @@
 
   const appendDocumentBlock = (docText, pulseData, driftResult) => {
     const area = document.getElementById('chatArea');
-    const driftScore = driftResult ? driftResult.score : 'Moderate';
-    const driftClass = driftScore === 'Strong' ? 'drift-strong'
+    const profile   = PhinityCore.loadProfileCached();
+    const tier      = profile ? profile.tier || 'free' : 'free';
+    const limits    = PhinityCore.TIER_LIMITS[tier];
+
+    const driftScore = driftResult ? (driftResult.score || 'Moderate') : 'Moderate';
+    const driftClass = driftScore === 'Strong'   ? 'drift-strong'
                      : driftScore === 'Drifting' ? 'drift-drifting'
                      : 'drift-moderate';
+
+    // Pulse button label — show tier badge if limited
+    const pulseLabel = limits.pulseFlags === 1
+      ? `Pulse Review <span class="tier-gate-badge">1 flag</span>`
+      : 'Pulse Review';
 
     const blockEl = document.createElement('div');
     blockEl.className = 'doc-block';
     blockEl.innerHTML = `
       <div class="doc-block-toolbar">
         <button class="doc-tool-btn" id="tb-download">Download PDF</button>
-        <button class="doc-tool-btn" id="tb-pulse">Pulse Review</button>
+        <button class="doc-tool-btn" id="tb-pulse">${pulseLabel}</button>
         <button class="doc-tool-btn ${driftClass}" id="tb-drift">${driftScore}</button>
       </div>
       <div class="doc-content" id="docContent">${formatDocText(docText)}</div>
     `;
 
-    if (pulseData && pulseData.length > 0) blockEl.appendChild(buildPulseSection(pulseData, docText));
+    // Restore pulse section if we have saved data (session restore)
+    if (pulseData && pulseData.length > 0) {
+      const capped = pulseData.slice(0, limits.pulseFlags);
+      blockEl.appendChild(buildPulseSection(capped, docText));
+      const pb = blockEl.querySelector('#tb-pulse');
+      if (pb) { pb.innerHTML = 'Pulse Review ✓'; pb.dataset.loaded = 'true'; pb.classList.add('active-check'); }
+    }
+
     area.appendChild(blockEl);
     scrollChat();
 
+    // ── Download PDF ──────────────────────────────
     blockEl.querySelector('#tb-download').addEventListener('click', () => downloadPDF(docText));
 
+    // ── Pulse Review ──────────────────────────────
     blockEl.querySelector('#tb-pulse').addEventListener('click', async () => {
       const btn = blockEl.querySelector('#tb-pulse');
       if (btn.dataset.loaded === 'true') return;
+
       btn.textContent = 'Auditing…';
       btn.disabled = true;
+
       try {
-        const pulseFlags = await PhinityCore.runPulseReview(docText, currentSessionId);
-        currentPulseData = pulseFlags;
+        const allFlags  = await PhinityCore.runPulseReview(docText, currentSessionId);
+        const cappedFlags = allFlags.slice(0, limits.pulseFlags);
+        currentPulseData = cappedFlags;
+
         blockEl.querySelector('.pulse-section')?.remove();
-        if (pulseFlags.length > 0) {
-          blockEl.appendChild(buildPulseSection(pulseFlags, docText));
+
+        if (cappedFlags.length > 0) {
+          blockEl.appendChild(buildPulseSection(cappedFlags, docText));
         } else {
-          appendPhinityMessage('Pulse Review found no significant judgment calls to flag. The document reads cleanly.');
+          appendPhinityMessage('Pulse Review found no significant judgment calls. The document reads cleanly.');
         }
-        btn.textContent = 'Pulse Review ✓';
+
+        btn.innerHTML = 'Pulse Review ✓';
+        btn.classList.add('active-check');
         btn.dataset.loaded = 'true';
+        btn.disabled = false;
+
+        // Free tier nudge if more flags were found but capped
+        if (tier === 'free' && allFlags.length > 1) {
+          appendUpgradeNudge('Pulse Review flagged more moments, but the Free plan shows 1. Upgrade to Core or Pro to see all flags and use Adjust / Rephrase.');
+        }
+
       } catch (e) {
-        btn.textContent = 'Pulse Review';
+        btn.innerHTML = pulseLabel;
         btn.disabled = false;
         appendPhinityMessage('Pulse Review encountered an error. Please try again.');
       }
     });
 
-    blockEl.querySelector('#tb-drift').addEventListener('click', async () => {
-      const reason = driftResult ? driftResult.reason : 'No drift data available.';
-      const recalBtn = driftScore !== 'Strong'
-        ? `<button class="inline-action" id="recalBtn">Recalibrate tone</button>` : '';
-      appendPhinityMessage(`Voice Drift: ${driftScore}. ${reason} ${recalBtn}`, true);
-
-      if (driftScore !== 'Strong') {
-        setTimeout(() => {
-          document.getElementById('recalBtn')?.addEventListener('click', async (e) => {
-            const rb = e.currentTarget;
-            rb.textContent = 'Recalibrating…';
-            rb.disabled = true;
-            try {
-              const recal = await PhinityCore.runSubmissionMode(docText);
-              currentDocumentText = recal;
-              blockEl.querySelector('#docContent').innerHTML = formatDocText(recal);
-              rb.textContent = 'Done';
-            } catch (err) {
-              rb.textContent = 'Failed';
-            }
-          });
-        }, 100);
-      }
+    // ── Voice Drift ───────────────────────────────
+    blockEl.querySelector('#tb-drift').addEventListener('click', () => {
+      showDriftPanel(driftResult, driftScore, limits, docText, blockEl);
     });
   };
 
@@ -707,22 +793,76 @@
     scrollChat();
   };
 
+  // ── Voice Drift Panel ─────────────────────────────
+  const showDriftPanel = (driftResult, driftScore, limits, docText, blockEl) => {
+    const reason = driftResult ? (driftResult.reason || 'No drift analysis available.') : 'No drift analysis available.';
+    const labelClass = driftScore === 'Strong' ? 'strong' : driftScore === 'Drifting' ? 'drifting' : 'moderate';
+    const canRecal = limits.voiceDriftRecal && driftScore !== 'Strong';
+
+    const panel = document.createElement('div');
+    panel.className = 'drift-panel';
+    panel.innerHTML = `
+      <div class="drift-panel-label ${labelClass}">Voice Drift — ${driftScore}</div>
+      <div class="drift-panel-reason">${escapeHtml(reason)}</div>
+      ${canRecal ? `<button class="drift-recal-btn" id="driftRecalBtn">Recalibrate tone</button>` : ''}
+      ${!limits.voiceDriftRecal ? `<div class="drift-locked-note">Tone recalibration available on Core &amp; Pro plans.</div>` : ''}
+    `;
+    document.getElementById('chatArea').appendChild(panel);
+    scrollChat();
+
+    if (canRecal) {
+      panel.querySelector('#driftRecalBtn').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        btn.textContent = 'Recalibrating…';
+        btn.disabled = true;
+        try {
+          const recal = await PhinityCore.runSubmissionMode(docText);
+          currentDocumentText = recal;
+          blockEl.querySelector('#docContent').innerHTML = formatDocText(recal);
+          btn.textContent = 'Done ✓';
+          btn.classList.add('active-check');
+        } catch (err) {
+          btn.textContent = 'Failed — try again';
+          btn.disabled = false;
+        }
+      });
+    }
+  };
+
+  // ── Upgrade Nudge ─────────────────────────────────
+  const appendUpgradeNudge = (message) => {
+    const area = document.getElementById('chatArea');
+    const el = document.createElement('div');
+    el.className = 'upgrade-nudge';
+    el.innerHTML = `
+      <span class="upgrade-nudge-icon">⚡</span>
+      <span class="upgrade-nudge-text">${escapeHtml(message)}</span>
+      <button class="upgrade-nudge-btn" onclick="document.querySelector('[data-section=tier]')?.click()">Upgrade</button>
+    `;
+    area.appendChild(el);
+    scrollChat();
+  };
+
   // ── Pulse Review Section ──────────────────────────
   const buildPulseSection = (flags, docText) => {
     const section = document.createElement('div');
     section.className = 'pulse-section';
-    section.style.cssText = 'padding: 0 1rem 1rem;';
+
+    const header = document.createElement('div');
+    header.className = 'pulse-section-header';
+    header.textContent = `Pulse Review — ${flags.length} flag${flags.length !== 1 ? 's' : ''}`;
+    section.appendChild(header);
 
     flags.forEach((flag, idx) => {
       const note = document.createElement('div');
       note.className = 'pulse-note';
       note.innerHTML = `
-        <p style="font-size:0.75rem;color:var(--text-3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem">${flag.type || 'judgment call'} · Flag ${idx + 1}</p>
-        <p style="margin-bottom:0.5rem;">"${escapeHtml(flag.excerpt || '')}"</p>
-        <p style="color:var(--text-3);font-size:0.78rem;">${escapeHtml(flag.explanation || '')}</p>
+        <div class="pulse-note-type">${escapeHtml(flag.type || 'judgment call')} · ${idx + 1} of ${flags.length}</div>
+        <div class="pulse-note-excerpt">"${escapeHtml(flag.excerpt || '')}"</div>
+        <div class="pulse-note-explain">${escapeHtml(flag.explanation || '')}</div>
         <div class="pulse-actions">
-          <button class="pulse-btn keep" data-action="keep" data-idx="${idx}">Keep</button>
-          <button class="pulse-btn adjust" data-action="adjust" data-idx="${idx}">Adjust</button>
+          <button class="pulse-btn keep"    data-action="keep"    data-idx="${idx}">Keep</button>
+          <button class="pulse-btn adjust"  data-action="adjust"  data-idx="${idx}">Adjust</button>
           <button class="pulse-btn rephrase" data-action="rephrase" data-idx="${idx}">Rephrase</button>
         </div>
       `;
@@ -731,24 +871,27 @@
       note.querySelectorAll('.pulse-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const action = btn.dataset.action;
+
           if (action === 'keep') {
-            note.style.opacity = '0.4';
-            note.style.pointerEvents = 'none';
+            note.classList.add('resolved');
             return;
           }
+
+          note.querySelectorAll('.pulse-btn').forEach(b => b.disabled = true);
           btn.textContent = action === 'adjust' ? 'Adjusting…' : 'Rephrasing…';
-          btn.disabled = true;
+
           try {
-            const newText = await PhinityCore.regenerateSection(flag.excerpt, flag.explanation, currentDocumentText, action);
+            const newText = await PhinityCore.regenerateSection(
+              flag.excerpt, flag.explanation, currentDocumentText, action
+            );
             currentDocumentText = currentDocumentText.replace(flag.excerpt, newText);
             const docContent = document.getElementById('docContent');
             if (docContent) docContent.innerHTML = formatDocText(currentDocumentText);
-            note.style.opacity = '0.4';
-            note.style.pointerEvents = 'none';
             flag.excerpt = newText;
+            note.classList.add('resolved');
           } catch (e) {
+            note.querySelectorAll('.pulse-btn').forEach(b => b.disabled = false);
             btn.textContent = action;
-            btn.disabled = false;
           }
         });
       });
@@ -763,34 +906,68 @@
     const tier      = profile ? profile.tier || 'free' : 'free';
     const watermark = PhinityCore.TIER_LIMITS[tier].watermark;
 
+    // Auto-name: first 5 words of doc + date
+    const firstWords = docText.trim().split(/\s+/).slice(0, 5).join('_').replace(/[^a-zA-Z0-9_]/g, '');
+    const fileName = `PhinityX_${firstWords}_${getDateStr()}.pdf`;
+
     const printDiv = document.createElement('div');
-    printDiv.style.cssText = `position:fixed;left:-9999px;top:0;width:794px;background:white;color:black;font-family:Georgia,serif;font-size:12pt;line-height:1.8;padding:72px;`;
+    printDiv.style.cssText = `
+      position: fixed; left: -9999px; top: 0;
+      width: 794px; background: white; color: #111;
+      font-family: Georgia, serif; font-size: 12pt;
+      line-height: 1.85; padding: 80px 72px;
+      box-sizing: border-box;
+    `;
     printDiv.innerHTML = docText.split(/\n\n+/).filter(p => p.trim())
-      .map(p => `<p style="margin-bottom:1em">${escapeHtml(p.trim())}</p>`).join('');
+      .map(p => `<p style="margin-bottom:1.1em">${escapeHtml(p.trim())}</p>`).join('');
 
     if (watermark) {
       const wm = document.createElement('div');
-      wm.style.cssText = `position:fixed;bottom:24px;right:24px;font-size:8pt;color:#999;font-family:monospace;letter-spacing:0.1em;`;
-      wm.textContent = 'Generated with PhinityX Free';
+      wm.style.cssText = `
+        margin-top: 3rem; padding-top: 1rem;
+        border-top: 1px solid #ddd;
+        font-size: 8pt; color: #aaa;
+        font-family: monospace; letter-spacing: 0.08em;
+        text-align: right;
+      `;
+      wm.textContent = 'Generated with PhinityX Free · phinityx.pages.dev';
       printDiv.appendChild(wm);
     }
 
     document.body.appendChild(printDiv);
+
     try {
-      if (window.jspdf && window.html2canvas) {
-        const canvas = await window.html2canvas(printDiv);
-        const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-        const w = pdf.internal.pageSize.getWidth();
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, w, (canvas.height * w) / canvas.width);
-        pdf.save(`PhinityX_${getDateStr()}.pdf`);
+      if (window.jspdf?.jsPDF && window.html2canvas) {
+        // Best path: jsPDF + html2canvas → multi-page aware
+        const canvas  = await window.html2canvas(printDiv, { scale: 2, useCORS: true });
+        const pdf     = new window.jspdf.jsPDF('p', 'mm', 'a4');
+        const pageW   = pdf.internal.pageSize.getWidth();
+        const pageH   = pdf.internal.pageSize.getHeight();
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        const imgH    = (canvas.height * pageW) / canvas.width;
+        let yPos = 0;
+
+        while (yPos < imgH) {
+          if (yPos > 0) pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, -yPos, pageW, imgH);
+          yPos += pageH;
+        }
+        pdf.save(fileName);
+
       } else {
+        // Fallback: print dialog
         const pw = window.open('', '_blank');
-        pw.document.write(`<!DOCTYPE html><html><body style="font-family:Georgia,serif;font-size:12pt;line-height:1.8;padding:72px;color:black;">${printDiv.innerHTML}</body></html>`);
-        pw.document.close();
-        pw.print();
+        if (pw) {
+          pw.document.write(`<!DOCTYPE html><html><head><title>${fileName}</title>
+            <style>body{font-family:Georgia,serif;font-size:12pt;line-height:1.85;padding:80px 72px;color:#111;}p{margin-bottom:1.1em;}</style>
+            </head><body>${printDiv.innerHTML}</body></html>`);
+          pw.document.close();
+          setTimeout(() => pw.print(), 400);
+        }
       }
     } catch (e) {
       console.warn('PDF error:', e);
+      appendPhinityMessage('PDF generation failed. Try again or use the print dialog.');
     } finally {
       document.body.removeChild(printDiv);
     }

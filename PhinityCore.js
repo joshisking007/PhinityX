@@ -134,6 +134,13 @@ const PhinityCore = (() => {
     return cached ? JSON.parse(cached) : null;
   };
 
+  // Temporary one-generation override for detection adjustment
+  // Does NOT write to localStorage or Supabase — cleared after every generation
+  let _profileOverride = null;
+  const patchProfileCache         = (patched) => { _profileOverride = patched; };
+  const clearProfileOverride      = ()         => { _profileOverride = null; };
+  const loadProfileCachedOrOverride = ()       => _profileOverride || loadProfileCached();
+
   // ── Profile — save to Supabase ─────────────────────────
   const saveProfile = async (profileData) => {
     try {
@@ -417,7 +424,7 @@ const PhinityCore = (() => {
     if (!ok) throw Object.assign(new Error('Monthly document limit reached for your plan.'), { code: 'limit_reached' });
 
     // Pass full fingerprint so edge function builds the complete Part II personality prompt
-    const profile = loadProfileCached();
+    const profile = loadProfileCachedOrOverride();
     const fp      = profile ? buildFingerprint(profile) : null;
 
     const result = await callEdge({
@@ -488,6 +495,8 @@ const PhinityCore = (() => {
     // Profile
     loadProfile,
     loadProfileCached,
+    patchProfileCache,
+    clearProfileOverride,
     saveProfile,
     updateProfileField,
     buildFingerprint,
