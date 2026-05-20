@@ -976,7 +976,36 @@ a { color: var(--crimson-l); text-decoration: none; }
   flex-direction: column;
   gap: 1rem;
   scroll-behavior: smooth;
+  position: relative;
+  /* Portrait image — mobile */
+  background-image: url('https://raw.githubusercontent.com/joshisking007/PhinityX/main/home-bg.png');
+  background-repeat: no-repeat;
+  background-size: auto 88%;
+  background-position: center bottom;
 }
+
+/* Dark vignette over the image so chat bubbles always stay readable */
+.chat-area::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(8,8,8,0.55) 0%, transparent 100%),
+    linear-gradient(to bottom, rgba(8,8,8,0.5) 0%, transparent 20%, transparent 80%, rgba(8,8,8,0.6) 100%);
+}
+
+/* All chat messages sit above the vignette */
+.chat-msg,
+.doc-block,
+.thinking-msg,
+.limit-notice,
+.incomplete-warning {
+  position: relative;
+  z-index: 1;
+}
+
 .doc-input-bar { border-top: 1px solid var(--border); }
 
 /* Chat Bubbles */
@@ -1705,4 +1734,45 @@ a { color: var(--crimson-l); text-decoration: none; }
 .limit-notice .btn-primary {
   font-size: 0.78rem;
   padding: 0.6rem 1.25rem;
+}
+
+/* ════════════════════════════════════════════════
+   DESKTOP — centered column + wide landscape images
+════════════════════════════════════════════════ */
+@media (min-width: 600px) {
+  body {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    background: #050505;
+  }
+
+  .screen {
+    position: fixed;
+    left: 50%;
+    transform: translateX(calc(-50% + 10px));
+    width: 100%;
+    max-width: 480px;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  .screen.active  { transform: translateX(-50%); }
+  .screen.exit    { transform: translateX(calc(-50% - 10px)); }
+
+  .sidebar          { position: absolute; }
+  .sidebar-overlay  { position: absolute; }
+
+  /* Wide landscape image on desktop for home screen */
+  .home-center {
+    background-image: url('https://raw.githubusercontent.com/joshisking007/PhinityX/main/home-bg-desktop.png');
+    background-size: cover;
+    background-position: right center;
+  }
+
+  /* Wide landscape image on desktop for doc screen */
+  .chat-area {
+    background-image: url('https://raw.githubusercontent.com/joshisking007/PhinityX/main/home-bg-desktop.png');
+    background-size: cover;
+    background-position: right center;
+  }
 }
