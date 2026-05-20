@@ -354,6 +354,22 @@ const PhinityCore = (() => {
     await db.from('sessions').delete().eq('id', sessionId).eq('user_id', user.id);
   };
 
+  // Save chat messages array to a session row
+  const saveMessages = async (sessionId, messages) => {
+    if (!sessionId) return;
+    try {
+      const user = await getUser();
+      if (!user) return;
+      await db
+        .from('sessions')
+        .update({ messages: messages })
+        .eq('id', sessionId)
+        .eq('user_id', user.id);
+    } catch (e) {
+      console.warn('saveMessages error:', e);
+    }
+  };
+
   // ── Usage / doc limits ─────────────────────────────────
   const canGenerateDoc = async () => {
     const profile = await loadProfile();
@@ -507,6 +523,7 @@ const PhinityCore = (() => {
     loadSessions,
     getSessionById,
     deleteSession,
+    saveMessages,
 
     // Usage
     canGenerateDoc,

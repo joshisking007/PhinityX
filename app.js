@@ -49,6 +49,7 @@
   let currentSessionId = null;
   let currentDocumentText = null;
   let currentPulseData = null;
+  let currentMessages = []; // tracks chat history for persistence
   let pendingAttachments = [];
   let pendingImageFiles = [];
 
@@ -428,6 +429,7 @@
     currentSessionId = null;
     currentDocumentText = null;
     currentPulseData = null;
+    currentMessages = [];
     pendingAttachments = [];
     pendingImageFiles = [];
 
@@ -453,12 +455,25 @@
     currentSessionId    = sessionId;
     currentDocumentText = session.document;
     currentPulseData    = session.pulse_review;
+    currentMessages     = session.messages || [];
 
     await showDocScreen();
     clearChat();
 
-    if (session.prompt)   appendUserMessage(session.prompt);
-    if (session.document) appendDocumentBlock(session.document, session.pulse_review, session.drift_score);
+    // Replay from saved messages array if available
+    if (currentMessages.length > 0) {
+      currentMessages.forEach(msg => {
+        if (msg.role === 'user') {
+          appendUserMessage(msg.text);
+        } else if (msg.role === 'document') {
+          appendDocumentBlock(msg.text, session.pulse_review, msg.drift);
+        }
+      });
+    } else {
+      // Fallback for old sessions saved before messages column existed
+      if (session.prompt)   appendUserMessage(session.prompt);
+      if (session.document) appendDocumentBlock(session.document, session.pulse_review, session.drift_score);
+    }
   };
 
   // ── Doc Screen ────────────────────────────────────
@@ -492,6 +507,7 @@
     if (!canGen) { appendLimitNotice(); return; }
 
     appendUserMessage(promptText);
+    currentMessages.push({ role: 'user', text: promptText });
 
     if (pendingAttachments.length === 0 && pendingImageFiles.length === 0) {
       const continued = await showMissingAttachmentWarning();
@@ -551,6 +567,13 @@
       }
 
       appendDocumentBlock(currentDocumentText, null, driftResult);
+      currentMessages.push({ role: 'document', text: currentDocumentText, drift: driftResult });
+
+      // Save chat history to Supabase so it survives refresh
+      if (currentSessionId) {
+        PhinityCore.saveMessages(currentSessionId, currentMessages).catch(() => {});
+      }
+
       await renderSessionSidebar();
       clearAttachments();
       PhinityCore.clearProfileOverride();
