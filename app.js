@@ -660,7 +660,7 @@
 
       let reason = '';
       if (isFormal && isSophisticated)
-        reason = 'Your style is set to formal and sophisticated — which produces strong academic writing, but AI detectors are known to flag formal prose as AI-generated even when it isn't. This is a well-documented false positive problem.';
+        reason = 'Your style is set to formal and sophisticated — which produces strong academic writing, but AI detectors are known to flag formal prose as AI-generated even when it isn\'t. This is a well-documented false positive problem.';
       else if (isFormal)
         reason = 'Your tone is set to formal-academic. AI detectors frequently misclassify formal writing styles, including genuine human work, as AI-generated.';
       else
