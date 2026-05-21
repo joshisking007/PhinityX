@@ -648,14 +648,14 @@
 
       let reason = '';
       if (isFormal && isSophisticated)
-        reason = 'Your style is set to formal and sophisticated vocabulary. That produces stronger writing but sits closer to patterns AI detectors are trained on.';
+        reason = 'Your style is set to formal and sophisticated — which produces strong academic writing, but AI detectors are known to flag formal prose as AI-generated even when it isn't. This is a well-documented false positive problem.';
       else if (isFormal)
-        reason = 'Your tone is set to formal-academic. That register tends to score higher on AI detectors.';
+        reason = 'Your tone is set to formal-academic. AI detectors frequently misclassify formal writing styles, including genuine human work, as AI-generated.';
       else
-        reason = 'Your vocabulary is set to sophisticated. Complex word choice can trigger detection tools.';
+        reason = 'Your vocabulary is set to sophisticated. AI detectors can incorrectly flag advanced vocabulary, even in authentic human writing.';
 
       const msgEl = appendPhinityMessage(
-        `Heads up — ${reason} If you're submitting somewhere that runs detection, I can dial back the formality for this one. Otherwise we're good.`,
+        `Heads up — ${reason} If you're concerned about false positives, I can slightly reduce the formality for this document. Note: always ensure your use of this tool aligns with your institution's academic integrity policy.`,
         true
       );
 
@@ -674,7 +674,7 @@
       const adjustBtn = document.createElement('button');
       adjustBtn.className = 'inline-action';
       adjustBtn.style.marginLeft = '0.5rem';
-      adjustBtn.textContent = 'Adjust for detection';
+      adjustBtn.textContent = 'Reduce false positive risk';
       adjustBtn.addEventListener('click', () => {
         const cached = PhinityCore.loadProfileCached();
         if (cached) {
