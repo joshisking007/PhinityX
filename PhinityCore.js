@@ -17,6 +17,9 @@ const PhinityCore = (() => {
 
   // Supabase JS v2 loaded via CDN in index.html:
   // <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    throw new Error('PhinityCore: Supabase CDN script not loaded. Check network connection and script order in index.html.');
+  }
   const { createClient } = window.supabase;
   const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

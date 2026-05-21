@@ -1341,7 +1341,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+          onerror="document.body.innerHTML='<div style=\"color:#fff;background:#000;padding:2rem;font-family:monospace\">PhinityX could not load — Supabase CDN failed to fetch. Check your network and reload.</div>'"></script>
+  <script>
+    // Safety check: ensure Supabase loaded before continuing
+    if (!window.supabase) {
+      console.error("Supabase CDN did not load. PhinityCore and app.js will not initialise.");
+    }
+  </script>
   <script src="PhinityCore.js"></script>
   <script src="app.js"></script>
 </body>
