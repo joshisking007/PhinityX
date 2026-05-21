@@ -1068,7 +1068,20 @@
       <div class="home-topbar">
         <button class="hamburger" id="hamburger">☰</button>
         <span class="home-topbar-title">PhinityX</span>
-        <button class="settings-btn" id="homeSettings">⚙</button>
+        <div class="home-topbar-right">
+          <button class="face-toggle-btn" id="faceToggleBtn" title="Toggle Aria face" aria-label="Toggle Aria face">
+            <svg class="face-icon face-icon--on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+            <svg class="face-icon face-icon--off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+              <line x1="3" y1="3" x2="21" y2="21"/>
+            </svg>
+          </button>
+          <button class="settings-btn" id="homeSettings">⚙</button>
+        </div>
       </div>
       <div class="home-center">
         <h1 class="home-wordmark">PhinityX</h1>

@@ -379,6 +379,45 @@
     document.getElementById('homePrompt').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) handleHomePromptSend();
     });
+
+    // ── Face toggle ──────────────────────────────
+    const FACE_KEY   = 'px_face_on';
+    const COUNT_KEY  = 'px_face_counts'; // { on: N, off: N }
+
+    const getFacePref = () => localStorage.getItem(FACE_KEY) === 'true';
+    const saveFacePref = (val) => localStorage.setItem(FACE_KEY, val ? 'true' : 'false');
+    const bumpFaceCount = (val) => {
+      try {
+        const raw = localStorage.getItem(COUNT_KEY);
+        const counts = raw ? JSON.parse(raw) : { on: 0, off: 0 };
+        if (val) counts.on  = (counts.on  || 0) + 1;
+        else     counts.off = (counts.off || 0) + 1;
+        localStorage.setItem(COUNT_KEY, JSON.stringify(counts));
+      } catch (_) {}
+    };
+
+    const applyFace = (on) => {
+      const homeCenter = document.querySelector('.home-center');
+      const btn        = document.getElementById('faceToggleBtn');
+      if (!homeCenter || !btn) return;
+      if (on) {
+        homeCenter.classList.remove('face-hidden');
+        btn.classList.add('face-on');
+      } else {
+        homeCenter.classList.add('face-hidden');
+        btn.classList.remove('face-on');
+      }
+    };
+
+    // Apply saved pref on init (default = off)
+    applyFace(getFacePref());
+
+    document.getElementById('faceToggleBtn').addEventListener('click', () => {
+      const next = !getFacePref();
+      saveFacePref(next);
+      bumpFaceCount(next);
+      applyFace(next);
+    });
   };
 
   const handleHomePromptSend = () => {
