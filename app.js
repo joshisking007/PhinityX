@@ -104,10 +104,17 @@
   const runPhinityLoader = () => {
     showScreen('screen-loader', false);
     window.startPxLoader(async () => {
-      const session = await PhinityCore.getSession();
-      if (session) {
-        await loadHomeScreen();
-      } else {
+      try {
+        const session = await PhinityCore.getSession();
+        if (session) {
+          await loadHomeScreen();
+        } else {
+          const cached = PhinityCore.loadProfileCached();
+          showScreen(cached && cached.name ? 'screen-login' : 'screen-signup', false);
+        }
+      } catch (err) {
+        console.error('Loader auth check failed:', err);
+        // Fall through to login rather than hanging
         const cached = PhinityCore.loadProfileCached();
         showScreen(cached && cached.name ? 'screen-login' : 'screen-signup', false);
       }
@@ -348,9 +355,13 @@
   const loadHomeScreen = async () => {
     showScreen('screen-home', false);
     screenStack.length = 0;
-    await renderSessionSidebar();
-    await populateProfileScreen();
-    await checkReassessment();
+    try {
+      await renderSessionSidebar();
+      await populateProfileScreen();
+      await checkReassessment();
+    } catch (err) {
+      console.error('loadHomeScreen error:', err);
+    }
   };
 
   const initHome = () => {
