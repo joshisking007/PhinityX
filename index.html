@@ -1290,6 +1290,7 @@
     const LINKS = 28;
     const track = document.getElementById('pxChainTrack');
     const pctEl = document.getElementById('pxPct');
+    track.innerHTML = '';
     for (let i = 0; i < LINKS; i++) {
       const l = document.createElement('div');
       l.className = 'px-link'; l.id = 'pxLnk' + i;

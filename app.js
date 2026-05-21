@@ -103,6 +103,7 @@
   // startPxLoader() function. onComplete fires when bar hits 100%.
   const runPhinityLoader = () => {
     showScreen('screen-loader', false);
+    window._pxLoaderStarted = false;
     window.startPxLoader(async () => {
       try {
         const session = await PhinityCore.getSession();
