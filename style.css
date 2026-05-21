@@ -795,7 +795,7 @@ a { color: var(--crimson-l); text-decoration: none; }
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 0;
   overflow: hidden;
 }
 .home-topbar {
@@ -872,15 +872,14 @@ a { color: var(--crimson-l); text-decoration: none; }
   height: 28px;
   color: var(--text-3);
   transition: color var(--transition);
-  position: relative;
 }
 .face-toggle-btn:hover { color: var(--text-2); }
 .face-toggle-btn.face-on { color: var(--crimson-l); }
-.face-icon { position: absolute; transition: opacity 0.2s ease; }
-.face-icon--off { opacity: 1; }
-.face-icon--on  { opacity: 0; }
-.face-toggle-btn.face-on .face-icon--off { opacity: 0; }
-.face-toggle-btn.face-on .face-icon--on  { opacity: 1; }
+.face-toggle-slash {
+  transition: opacity 0.2s ease;
+  opacity: 1;
+}
+.face-toggle-btn.face-on .face-toggle-slash { opacity: 0; }
 
 /* ── Face OFF state — strip the background image ─ */
 .home-center.face-hidden {
@@ -889,22 +888,6 @@ a { color: var(--crimson-l); text-decoration: none; }
 .home-center.face-hidden::before {
   background: none;
 }
-
-/* ── Face fade-in/out transition ─────────────────── */
-.home-center {
-  transition: background-image 0s; /* instant swap; CSS handles fade via pseudo */
-}
-.home-center::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: inherit;
-  opacity: 1;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-  z-index: 0;
-}
-.home-center.face-hidden::after { opacity: 0; }
 
 .home-wordmark {
   font-family: var(--font-display);
