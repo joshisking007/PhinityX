@@ -356,6 +356,17 @@
   const loadHomeScreen = async () => {
     showScreen('screen-home', false);
     screenStack.length = 0;
+
+    // Set user's first name in topbar
+    const profile = PhinityCore.loadProfileCached();
+    const firstName = profile ? (profile.name || '').split(' ')[0] || 'PhinityX' : 'PhinityX';
+    const titleEl = document.getElementById('homeTopbarName');
+    if (titleEl) titleEl.textContent = firstName;
+
+    // Show incomplete warning if needed
+    document.getElementById('incompleteWarning').style.display =
+      (profile && !profile.onboardingComplete) ? 'block' : 'none';
+
     try {
       await renderSessionSidebar();
       await populateProfileScreen();
@@ -365,51 +376,72 @@
     }
   };
 
+  // Unified — everything stays on home screen
+  const showDocScreen = async () => {
+    // Already on home screen; refresh name + warning only
+    const profile = PhinityCore.loadProfileCached();
+    const firstName = profile ? (profile.name || '').split(' ')[0] || 'PhinityX' : 'PhinityX';
+    const titleEl = document.getElementById('homeTopbarName');
+    if (titleEl) titleEl.textContent = firstName;
+    document.getElementById('incompleteWarning').style.display =
+      (profile && !profile.onboardingComplete) ? 'block' : 'none';
+  };
+
   const initHome = () => {
     document.getElementById('hamburger').addEventListener('click', openSidebar);
     document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
     document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
     document.getElementById('homeSettings').addEventListener('click', openProfile);
+
+    // New Chat — reset state, stay on home screen, show empty state
     document.getElementById('sidebarNewDoc').addEventListener('click', () => {
       closeSidebar();
       startNewDocSession();
     });
+
     document.getElementById('homeAttach').addEventListener('click', openAttachSheet);
     document.getElementById('homeSend').addEventListener('click', handleHomePromptSend);
     document.getElementById('homePrompt').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) handleHomePromptSend();
     });
 
-    // ── Face toggle ──────────────────────────────
-    const FACE_KEY   = 'px_face_on';
-    const COUNT_KEY  = 'px_face_counts'; // { on: N, off: N }
+    document.getElementById('completeProfileLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openProfile();
+    });
 
-    const getFacePref = () => localStorage.getItem(FACE_KEY) === 'true';
+    // ── Face toggle ──────────────────────────────
+    const FACE_KEY  = 'px_face_on';
+    const COUNT_KEY = 'px_face_counts';
+
+    const getFacePref  = () => localStorage.getItem(FACE_KEY) === 'true';
     const saveFacePref = (val) => localStorage.setItem(FACE_KEY, val ? 'true' : 'false');
     const bumpFaceCount = (val) => {
       try {
         const raw = localStorage.getItem(COUNT_KEY);
         const counts = raw ? JSON.parse(raw) : { on: 0, off: 0 };
-        if (val) counts.on  = (counts.on  || 0) + 1;
-        else     counts.off = (counts.off || 0) + 1;
+        if (val) counts.on = (counts.on || 0) + 1;
+        else counts.off = (counts.off || 0) + 1;
         localStorage.setItem(COUNT_KEY, JSON.stringify(counts));
       } catch (_) {}
     };
 
     const applyFace = (on) => {
-      const homeCenter = document.querySelector('.home-center');
-      const btn        = document.getElementById('faceToggleBtn');
-      if (!homeCenter || !btn) return;
+      const homeEmpty = document.getElementById('homeEmpty');
+      const chatArea  = document.getElementById('chatArea');
+      const btn = document.getElementById('faceToggleBtn');
+      if (!btn) return;
       if (on) {
-        homeCenter.classList.remove('face-hidden');
+        if (homeEmpty) homeEmpty.classList.add('face-on');
+        if (chatArea)  chatArea.classList.add('face-on');
         btn.classList.add('face-on');
       } else {
-        homeCenter.classList.add('face-hidden');
+        if (homeEmpty) homeEmpty.classList.remove('face-on');
+        if (chatArea)  chatArea.classList.remove('face-on');
         btn.classList.remove('face-on');
       }
     };
 
-    // Apply saved pref on init (default = off)
     applyFace(getFacePref());
 
     document.getElementById('faceToggleBtn').addEventListener('click', () => {
@@ -424,7 +456,8 @@
     const val = document.getElementById('homePrompt').value.trim();
     if (!val) return;
     document.getElementById('homePrompt').value = '';
-    startNewDocSession(val);
+    showChatState();
+    handleDocPrompt(val);
   };
 
   const openSidebar = () => {
@@ -468,35 +501,41 @@
     });
   };
 
-  // ── New Doc Session ───────────────────────────────
+  // ── New Chat Session ──────────────────────────────
   const startNewDocSession = async (initialPrompt) => {
     const canGen = await PhinityCore.canGenerateDoc();
     if (!canGen && initialPrompt) {
-      await showDocScreen();
+      showChatState();
       await appendLimitNotice();
       return;
     }
 
-    currentSessionId = null;
+    currentSessionId    = null;
     currentDocumentText = null;
-    currentPulseData = null;
-    currentMessages = [];
-    pendingAttachments = [];
-    pendingImageFiles = [];
+    currentPulseData    = null;
+    currentMessages     = [];
+    pendingAttachments  = [];
+    pendingImageFiles   = [];
 
-    await showDocScreen();
     clearChat();
+    showEmptyState(); // back to wordmark if no prompt yet
 
-    if (initialPrompt) handleDocPrompt(initialPrompt);
+    if (initialPrompt) {
+      showChatState();
+      handleDocPrompt(initialPrompt);
+    }
   };
 
-  const showDocScreen = async () => {
-    const profile = PhinityCore.loadProfileCached();
-    const name = profile ? profile.name || 'User' : 'User';
-    document.getElementById('docTopbarName').textContent = name;
-    showScreen('screen-doc');
-    document.getElementById('incompleteWarning').style.display =
-      (profile && !profile.onboardingComplete) ? 'block' : 'none';
+  // Show the empty wordmark state
+  const showEmptyState = () => {
+    document.getElementById('homeEmpty').style.display = 'flex';
+    document.getElementById('chatArea').style.display  = 'none';
+  };
+
+  // Show the chat state (hides wordmark, shows chat area)
+  const showChatState = () => {
+    document.getElementById('homeEmpty').style.display = 'none';
+    document.getElementById('chatArea').style.display  = 'flex';
   };
 
   const restoreSession = async (sessionId) => {
@@ -508,10 +547,9 @@
     currentPulseData    = session.pulse_review;
     currentMessages     = session.messages || [];
 
-    await showDocScreen();
     clearChat();
+    showChatState();
 
-    // Replay from saved messages array if available
     if (currentMessages.length > 0) {
       currentMessages.forEach(msg => {
         if (msg.role === 'user') {
@@ -521,35 +559,16 @@
         }
       });
     } else {
-      // Fallback for old sessions saved before messages column existed
       if (session.prompt)   appendUserMessage(session.prompt);
       if (session.document) appendDocumentBlock(session.document, session.pulse_review, session.drift_score);
     }
   };
 
-  // ── Doc Screen ────────────────────────────────────
-  const initDocScreen = () => {
-    document.getElementById('docBack').addEventListener('click', async () => {
-      showScreen('screen-home', false);
-      screenStack.length = 0;
-      await renderSessionSidebar();
-    });
-    document.getElementById('docSettings').addEventListener('click', openProfile);
-    document.getElementById('docAttach').addEventListener('click', openAttachSheet);
-    document.getElementById('docSend').addEventListener('click', handleDocSendClick);
-    document.getElementById('docPrompt').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) handleDocSendClick();
-    });
-    document.getElementById('completeProfileLink')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openProfile();
-    });
-  };
-
   const handleDocSendClick = () => {
-    const val = document.getElementById('docPrompt').value.trim();
+    const val = document.getElementById('homePrompt').value.trim();
     if (!val) return;
-    document.getElementById('docPrompt').value = '';
+    document.getElementById('homePrompt').value = '';
+    showChatState();
     handleDocPrompt(val);
   };
 
@@ -1291,7 +1310,6 @@
     initContext();
     initComplete();
     initHome();
-    initDocScreen();
     initAttachSheet();
     initProfileScreen();
     initReassessment();
