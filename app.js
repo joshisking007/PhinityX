@@ -444,12 +444,15 @@
 
     applyFace(getFacePref());
 
-    document.getElementById('faceToggleBtn').addEventListener('click', () => {
-      const next = !getFacePref();
-      saveFacePref(next);
-      bumpFaceCount(next);
-      applyFace(next);
-    });
+    const faceBtn = document.getElementById('faceToggleBtn');
+    if (faceBtn) {
+      faceBtn.addEventListener('click', () => {
+        const next = !getFacePref();
+        saveFacePref(next);
+        bumpFaceCount(next);
+        applyFace(next);
+      });
+    }
   };
 
   const handleHomePromptSend = () => {
