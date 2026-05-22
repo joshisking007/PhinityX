@@ -1045,7 +1045,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════════
-       HOME SCREEN
+       HOME SCREEN (chat + generation unified)
   ════════════════════════════════════════════ -->
   <div id="screen-home" class="screen">
     <!-- Sidebar -->
@@ -1053,7 +1053,7 @@
       <div class="sidebar-inner">
         <div class="sidebar-top">
           <button class="sidebar-close" id="sidebarClose">✕</button>
-          <button class="btn-primary sidebar-new" id="sidebarNewDoc">+ New Document</button>
+          <button class="btn-primary sidebar-new" id="sidebarNewDoc">New Chat</button>
         </div>
         <div class="sidebar-section-label">Sessions</div>
         <div class="session-list" id="sessionList">
@@ -1067,42 +1067,38 @@
     <div class="home-main">
       <div class="home-topbar">
         <button class="hamburger" id="hamburger">☰</button>
-        <span class="home-topbar-title">PhinityX</span>
-        <button class="settings-btn" id="homeSettings">⚙</button>
+        <span class="home-topbar-title" id="homeTopbarName">PhinityX</span>
+        <div class="home-topbar-right">
+          <button class="face-toggle-btn" id="faceToggleBtn" title="Toggle character" aria-label="Toggle character">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+              <line class="face-toggle-slash" x1="3" y1="3" x2="21" y2="21"/>
+            </svg>
+          </button>
+          <button class="settings-btn" id="homeSettings">⚙</button>
+        </div>
       </div>
-      <div class="home-center">
+
+      <!-- Empty state — shown when no chat is active -->
+      <div class="home-empty" id="homeEmpty">
         <h1 class="home-wordmark">PhinityX</h1>
         <p class="home-tagline">What are we writing today?</p>
       </div>
-      <div class="input-bar" id="homeInputBar">
-        <button class="attach-btn" id="homeAttach"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg></button>
-        <input type="text" id="homePrompt" class="prompt-input" placeholder="What are we writing?" />
-        <button class="send-btn" id="homeSend"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4.698 4.034l16.302 7.966l-16.302 7.966a.503 .503 0 0 1 -.546 -.124a.555 .555 0 0 1 -.12 -.568l2.468 -7.274l-2.468 -7.274a.555 .555 0 0 1 .12 -.568a.503 .503 0 0 1 .546 -.124"/><path d="M6.5 12h14.5"/></svg></button>
+
+      <!-- Chat area — shown once a session starts -->
+      <div class="chat-area home-chat" id="chatArea"></div>
+
+      <!-- Incomplete profile warning -->
+      <div class="incomplete-warning" id="incompleteWarning" style="display:none">
+        <span>⚠ Your profile is incomplete. Output may read less like you than it could. <a href="#" id="completeProfileLink">Complete profile</a></span>
       </div>
-    </div>
-  </div>
 
-  <!-- ═══════════════════════════════════════════
-       DOCUMENT CREATION SCREEN
-  ════════════════════════════════════════════ -->
-  <div id="screen-doc" class="screen">
-    <div class="doc-topbar">
-      <button class="back-to-home" id="docBack">←</button>
-      <span class="doc-topbar-name" id="docTopbarName">—</span>
-      <button class="settings-btn" id="docSettings">⚙</button>
-    </div>
-
-    <div class="chat-area" id="chatArea"></div>
-
-    <!-- Incomplete profile warning (hidden by default) -->
-    <div class="incomplete-warning" id="incompleteWarning" style="display:none">
-      <span>⚠ Your profile is incomplete. Output may read less like you than it could. <a href="#" id="completeProfileLink">Complete profile</a></span>
-    </div>
-
-    <div class="input-bar doc-input-bar">
-      <button class="attach-btn" id="docAttach"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg></button>
-      <input type="text" id="docPrompt" class="prompt-input" placeholder="What are we writing?" />
-      <button class="send-btn" id="docSend"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4.698 4.034l16.302 7.966l-16.302 7.966a.503 .503 0 0 1 -.546 -.124a.555 .555 0 0 1 -.12 -.568l2.468 -7.274l-2.468 -7.274a.555 .555 0 0 1 .12 -.568a.503 .503 0 0 1 .546 -.124"/><path d="M6.5 12h14.5"/></svg></button>
+      <div class="input-bar home-input-bar" id="homeInputBar">
+        <button class="attach-btn" id="homeAttach">+</button>
+        <input type="text" id="homePrompt" class="prompt-input" placeholder="Describe what you need..." />
+        <button class="send-btn" id="homeSend">→</button>
+      </div>
     </div>
   </div>
 
@@ -1207,14 +1203,14 @@
     <h3 class="bottom-sheet-title">Attach files</h3>
     <div class="attach-options">
       <button class="attach-option" id="attachImages">
-        <span class="attach-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 18h5"/><path d="M14 18h4"/><path d="M15 7h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12"/><path d="M3 15l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 13l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/><path d="M3 15h18"/></svg></span>
+        <span class="attach-icon">🖼</span>
         <div>
           <p class="attach-opt-title">Upload Images</p>
           <p class="attach-opt-sub">Photos of task sheets or reference material (max 5)</p>
         </div>
       </button>
       <button class="attach-option" id="attachDocs">
-        <span class="attach-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/></svg></span>
+        <span class="attach-icon">📄</span>
         <div>
           <p class="attach-opt-title">Upload Documents</p>
           <p class="attach-opt-sub">PDFs, Word, PowerPoint, lecture notes</p>
@@ -1226,20 +1222,6 @@
     <button class="btn-ghost" id="attachCancel" style="margin-top:1rem;width:100%">Cancel</button>
   </div>
   <div class="bottom-sheet-overlay" id="attachOverlay"></div>
-
-  <!-- ═══════════════════════════════════════════
-       DELETE CONFIRMATION MODAL
-  ════════════════════════════════════════════ -->
-  <div class="modal-overlay" id="deleteConfirmOverlay" style="display:none">
-    <div class="modal delete-confirm-modal">
-      <h3 class="modal-title">Delete this chat?</h3>
-      <p class="modal-body">This chat and its document will be permanently removed. This cannot be undone.</p>
-      <div class="modal-actions">
-        <button class="btn-ghost" id="deleteConfirmNo">Cancel</button>
-        <button class="btn-danger" id="deleteConfirmYes">Delete</button>
-      </div>
-    </div>
-  </div>
 
   <!-- ═══════════════════════════════════════════
        RE-ASSESSMENT MODAL
