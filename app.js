@@ -481,24 +481,98 @@
       return;
     }
 
-    list.innerHTML = sessions.map(s => {
+    // Pinned sessions float to top
+    const sorted = [...sessions].sort((a, b) => {
+      const ap = a.pinned ? 0 : 1;
+      const bp = b.pinned ? 0 : 1;
+      return ap - bp;
+    });
+
+    list.innerHTML = sorted.map(s => {
       const d = new Date(s.created_at || s.timestamp);
       const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      return `<button class="session-item" data-id="${s.id}">
-        <span class="session-item-title">${escapeHtml(s.topic || s.prompt || 'Untitled')}</span>
-        <span class="session-item-meta">
-          <span>${dateStr}</span>
-          <span>${s.context || 'university'}</span>
-        </span>
-      </button>`;
+      const pinned  = !!s.pinned;
+      return `<div class="session-item${pinned ? ' pinned' : ''}" data-id="${s.id}">
+        <button class="session-item-body" data-id="${s.id}">
+          <span class="session-item-title">${escapeHtml(s.topic || s.prompt || 'Untitled')}</span>
+          <span class="session-item-meta">
+            <span>${dateStr}</span>
+            <span>${s.context || 'university'}</span>
+          </span>
+        </button>
+        <div class="session-item-actions">
+          <button class="session-action-btn pin-btn${pinned ? ' active' : ''}" data-id="${s.id}" data-pinned="${pinned}" title="Pin chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="${pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4"/><path d="M9 15l-4.5 4.5"/><path d="M14.5 4l5.5 5.5"/></svg>
+          </button>
+          <button class="session-action-btn delete-btn" data-id="${s.id}" title="Delete chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
+          </button>
+        </div>
+      </div>`;
     }).join('');
 
-    list.querySelectorAll('.session-item').forEach(btn => {
+    // Restore session on body click
+    list.querySelectorAll('.session-item-body').forEach(btn => {
       btn.addEventListener('click', () => {
         closeSidebar();
         restoreSession(btn.dataset.id);
       });
     });
+
+    // Pin toggle — passes current pinned state so DB flips it
+    list.querySelectorAll('.pin-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const currentlyPinned = btn.dataset.pinned === 'true';
+        await PhinityCore.togglePinSession(btn.dataset.id, currentlyPinned);
+        await renderSessionSidebar();
+      });
+    });
+
+    // Delete with confirmation
+    list.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showDeleteConfirm(btn.dataset.id);
+      });
+    });
+  };
+
+  // ── Delete confirmation ───────────────────────────
+  const showDeleteConfirm = (sessionId) => {
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    const confirmBtn = document.getElementById('deleteConfirmYes');
+    const cancelBtn  = document.getElementById('deleteConfirmNo');
+
+    overlay.style.display = 'flex';
+
+    const cleanup = () => { overlay.style.display = 'none'; };
+
+    const onConfirm = async () => {
+      cleanup();
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click',  onCancel);
+      // If deleting the active session, reset home
+      if (currentSessionId === sessionId) {
+        currentSessionId    = null;
+        currentDocumentText = null;
+        currentPulseData    = null;
+        currentMessages     = [];
+        clearChat();
+        showEmptyState();
+      }
+      await PhinityCore.deleteSession(sessionId);
+      await renderSessionSidebar();
+    };
+
+    const onCancel = () => {
+      cleanup();
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click',  onCancel);
+    };
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click',  onCancel);
   };
 
   // ── New Chat Session ──────────────────────────────

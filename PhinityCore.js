@@ -357,6 +357,16 @@ const PhinityCore = (() => {
     await db.from('sessions').delete().eq('id', sessionId).eq('user_id', user.id);
   };
 
+  const togglePinSession = async (sessionId, currentlyPinned) => {
+    const user = await getUser();
+    if (!user) return;
+    await db
+      .from('sessions')
+      .update({ pinned: !currentlyPinned })
+      .eq('id', sessionId)
+      .eq('user_id', user.id);
+  };
+
   // Save chat messages array to a session row
   const saveMessages = async (sessionId, messages) => {
     if (!sessionId) return;
@@ -526,6 +536,7 @@ const PhinityCore = (() => {
     loadSessions,
     getSessionById,
     deleteSession,
+    togglePinSession,
     saveMessages,
 
     // Usage
