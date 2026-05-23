@@ -358,16 +358,20 @@ const PhinityCore = (() => {
   };
 
   const togglePinSession = async (sessionId, currentlyPinned) => {
+    // Safety: never run an unfiltered update
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.trim() === '') {
+      throw new Error('togglePinSession: invalid sessionId — update aborted');
+    }
     const user = await getUser();
-    if (!user) return;
+    if (!user) throw new Error('togglePinSession: no authenticated user');
     const { error } = await db
       .from('sessions')
       .update({ pinned: !currentlyPinned })
       .eq('id', sessionId)
       .eq('user_id', user.id);
     if (error) throw error;
-    // Invalidate cached session list so next loadSessions re-fetches
-    localStorage.removeItem(CACHE.SESSIONS);
+    // Invalidate cache so next loadSessions fetches fresh pinned state
+    try { localStorage.removeItem(CACHE.SESSIONS); } catch (_) {}
   };
 
   // Save chat messages array to a session row

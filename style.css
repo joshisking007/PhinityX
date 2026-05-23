@@ -1354,8 +1354,8 @@ a { color: var(--crimson-l); text-decoration: none; }
 }
 .doc-content::-webkit-scrollbar { width: 5px; }
 .doc-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-.doc-content::-webkit-scrollbar-thumb { background: rgba(193,18,31,0.45); border-radius: 3px; }
-.doc-content::-webkit-scrollbar-thumb:hover { background: rgba(193,18,31,0.75); }
+.doc-content::-webkit-scrollbar-thumb { background: rgba(193,18,31,0.5); border-radius: 3px; }
+.doc-content::-webkit-scrollbar-thumb:hover { background: rgba(193,18,31,0.8); }
 .doc-content p { margin-bottom: 1em; }
 
 /* Incomplete warning bar */
@@ -1875,25 +1875,22 @@ a { color: var(--crimson-l); text-decoration: none; }
   color: var(--text-2);
 }
 .toolbar-tip-popover {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 0.75rem 0.85rem 0.75rem 0.9rem;
-  width: 220px;
-  z-index: 100;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  width: 230px;
+  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
   animation: popoverIn 0.2s cubic-bezier(0.22,1,0.36,1) both;
 }
 @keyframes popoverIn {
-  from { opacity:0; transform:translateX(-50%) translateY(4px); }
-  to   { opacity:1; transform:translateX(-50%) translateY(0); }
+  from { opacity:0; transform:translateY(-4px); }
+  to   { opacity:1; transform:translateY(0); }
 }
 .tip-popover-text {
   font-size: 0.78rem;

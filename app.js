@@ -1092,7 +1092,18 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         `;
-        btn.parentElement.appendChild(pop);
+
+        // Append to body so it's never clipped by overflow:hidden parents
+        document.body.appendChild(pop);
+
+        // Position below the button using fixed coords
+        const rect = btn.getBoundingClientRect();
+        const popW = 230;
+        let left = rect.left + rect.width / 2 - popW / 2;
+        // Keep within viewport horizontally
+        left = Math.max(12, Math.min(left, window.innerWidth - popW - 12));
+        pop.style.left = left + 'px';
+        pop.style.top  = (rect.bottom + 8) + 'px';
 
         pop.querySelector('.tip-popover-close').addEventListener('click', (e) => {
           e.stopPropagation();
