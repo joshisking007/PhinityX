@@ -322,8 +322,8 @@ const PhinityCore = (() => {
       if (!user) return [];
 
       const { data, error } = await db
-        .from('session_list') // uses the view — no full document text
-        .select('*')
+        .from('sessions')
+        .select('id, user_id, topic, prompt, context, pinned, created_at, drift_score')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -360,11 +360,14 @@ const PhinityCore = (() => {
   const togglePinSession = async (sessionId, currentlyPinned) => {
     const user = await getUser();
     if (!user) return;
-    await db
+    const { error } = await db
       .from('sessions')
       .update({ pinned: !currentlyPinned })
       .eq('id', sessionId)
       .eq('user_id', user.id);
+    if (error) throw error;
+    // Invalidate cached session list so next loadSessions re-fetches
+    localStorage.removeItem(CACHE.SESSIONS);
   };
 
   // Save chat messages array to a session row

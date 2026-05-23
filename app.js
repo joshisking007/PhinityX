@@ -857,7 +857,6 @@
   const showFeatureHint = (key) => {
     const seen = getSeenHints();
     if (seen[key]) return;
-    markHintSeen(key);
 
     const hints = {
       pulse: {
@@ -891,6 +890,7 @@
     scrollChat();
 
     el.querySelector('.feature-hint-close').addEventListener('click', () => {
+      markHintSeen(key);
       el.classList.add('hint-fade-out');
       setTimeout(() => el.remove(), 400);
     });

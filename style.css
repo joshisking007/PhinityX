@@ -1335,7 +1335,7 @@ a { color: var(--crimson-l); text-decoration: none; }
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   max-width: 640px;
   align-self: flex-start;
@@ -1347,10 +1347,15 @@ a { color: var(--crimson-l); text-decoration: none; }
   line-height: 1.85;
   color: var(--bone-d);
   max-height: 500px;
-  overflow-y: auto;
+  overflow-y: scroll;
   white-space: pre-wrap;
   word-break: break-word;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
+.doc-content::-webkit-scrollbar { width: 5px; }
+.doc-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+.doc-content::-webkit-scrollbar-thumb { background: rgba(193,18,31,0.45); border-radius: 3px; }
+.doc-content::-webkit-scrollbar-thumb:hover { background: rgba(193,18,31,0.75); }
 .doc-content p { margin-bottom: 1em; }
 
 /* Incomplete warning bar */
