@@ -522,13 +522,21 @@
       });
     });
 
-    // Pin toggle — passes current pinned state so DB flips it
+    // Pin toggle
     list.querySelectorAll('.pin-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const currentlyPinned = btn.dataset.pinned === 'true';
-        await PhinityCore.togglePinSession(btn.dataset.id, currentlyPinned);
-        await renderSessionSidebar();
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        try {
+          const currentlyPinned = btn.dataset.pinned === 'true';
+          await PhinityCore.togglePinSession(btn.dataset.id, currentlyPinned);
+          await renderSessionSidebar();
+        } catch (err) {
+          console.error('Pin error:', err);
+          btn.disabled = false;
+          btn.style.opacity = '';
+        }
       });
     });
 
@@ -543,19 +551,36 @@
 
   // ── Delete confirmation ───────────────────────────
   const showDeleteConfirm = (sessionId) => {
-    const overlay = document.getElementById('deleteConfirmOverlay');
-    const confirmBtn = document.getElementById('deleteConfirmYes');
-    const cancelBtn  = document.getElementById('deleteConfirmNo');
+    // Build confirm panel dynamically — deleteConfirmOverlay doesn't exist in HTML
+    let overlay = document.getElementById('deleteConfirmOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'deleteConfirmOverlay';
+      overlay.className = 'delete-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="delete-confirm-box">
+          <div class="delete-confirm-title">Delete this chat?</div>
+          <div class="delete-confirm-sub">This can't be undone.</div>
+          <div class="delete-confirm-actions">
+            <button class="delete-confirm-btn cancel" id="deleteConfirmNo">Cancel</button>
+            <button class="delete-confirm-btn danger" id="deleteConfirmYes">Delete</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
 
-    overlay.style.display = 'flex';
+    const confirmBtn = overlay.querySelector('#deleteConfirmYes');
+    const cancelBtn  = overlay.querySelector('#deleteConfirmNo');
 
-    const cleanup = () => { overlay.style.display = 'none'; };
+    overlay.classList.add('visible');
+
+    const cleanup = () => overlay.classList.remove('visible');
 
     const onConfirm = async () => {
       cleanup();
       confirmBtn.removeEventListener('click', onConfirm);
       cancelBtn.removeEventListener('click',  onCancel);
-      // If deleting the active session, reset home
       if (currentSessionId === sessionId) {
         currentSessionId    = null;
         currentDocumentText = null;
@@ -576,6 +601,9 @@
 
     confirmBtn.addEventListener('click', onConfirm);
     cancelBtn.addEventListener('click',  onCancel);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) onCancel();
+    }, { once: true });
   };
 
   // ── New Chat Session ──────────────────────────────
@@ -834,11 +862,11 @@
     const hints = {
       pulse: {
         title: 'What is Pulse Review?',
-        body: 'Pulse scans your document for moments that could raise flags — unusual phrasing, structural weak points, or tone inconsistencies. Tap it on any document to see a full analysis.',
+        body: 'Pulse scans your document for moments that could raise flags — unusual phrasing, structural weak points, or tone inconsistencies. Tap any highlighted section in the Pulse screen to see what was flagged and why, then choose to keep, adjust, or rephrase it.',
       },
       drift: {
         title: 'What is Voice Drift?',
-        body: 'This score measures how closely the output matches your writing fingerprint. "Strong" means your voice is intact. "Drifting" means the document sounds more generic than usual.',
+        body: 'This score measures how closely the generated output matches your writing fingerprint. "Strong" means your voice came through clearly. "Moderate" means some AI-generic patterns crept in. "Drifting" means the document sounds noticeably more generic than your usual writing style.',
       },
     };
 
@@ -850,26 +878,22 @@
     el.className = 'feature-hint';
     el.innerHTML = `
       <div class="feature-hint-inner">
-        <div class="feature-hint-title">${escapeHtml(hint.title)}</div>
+        <div class="feature-hint-header">
+          <div class="feature-hint-title">${escapeHtml(hint.title)}</div>
+          <button class="feature-hint-close" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
         <div class="feature-hint-body">${escapeHtml(hint.body)}</div>
-        <button class="feature-hint-dismiss">Got it</button>
       </div>
     `;
     area.appendChild(el);
     scrollChat();
 
-    el.querySelector('.feature-hint-dismiss').addEventListener('click', () => {
+    el.querySelector('.feature-hint-close').addEventListener('click', () => {
       el.classList.add('hint-fade-out');
       setTimeout(() => el.remove(), 400);
     });
-
-    // Auto-dismiss after 8s
-    setTimeout(() => {
-      if (el.parentNode) {
-        el.classList.add('hint-fade-out');
-        setTimeout(() => el.remove(), 400);
-      }
-    }, 8000);
   };
 
   const showMissingAttachmentWarning = () => {
@@ -1022,12 +1046,66 @@
     blockEl.className = 'doc-block';
     blockEl.innerHTML = `
       <div class="doc-block-toolbar">
-        <button class="doc-tool-btn" id="tb-download">Download PDF</button>
-        <button class="doc-tool-btn" id="tb-pulse">${pulseLabel}</button>
-        <button class="doc-tool-btn ${driftClass}" id="tb-drift">${driftScore}</button>
+        <div class="toolbar-btn-group">
+          <button class="doc-tool-btn" id="tb-download">Download PDF</button>
+          <button class="toolbar-info-btn" data-tip="download" aria-label="What is Download PDF?">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          </button>
+        </div>
+        <div class="toolbar-btn-group">
+          <button class="doc-tool-btn" id="tb-pulse">${pulseLabel}</button>
+          <button class="toolbar-info-btn" data-tip="pulse" aria-label="What is Pulse Review?">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          </button>
+        </div>
+        <div class="toolbar-btn-group">
+          <button class="doc-tool-btn ${driftClass}" id="tb-drift">${driftScore}</button>
+          <button class="toolbar-info-btn" data-tip="drift" aria-label="What is Voice Drift?">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          </button>
+        </div>
       </div>
       <div class="doc-content" id="docContent">${formatDocText(docText)}</div>
     `;
+
+    // ── Info popovers ─────────────────────────────
+    const TIPS = {
+      download: 'Exports your document as a formatted PDF you can save or submit.',
+      pulse: 'Scans the document for flagged moments — tone issues, structural weak spots, or phrasing that could raise questions. Tap highlighted text to review and fix each one.',
+      drift: 'Measures how closely this output matches your writing fingerprint. Strong = your voice. Moderate = some generic patterns. Drifting = reads more AI-generic than usual.',
+    };
+
+    blockEl.querySelectorAll('.toolbar-info-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tip = TIPS[btn.dataset.tip];
+        if (!tip) return;
+
+        // Remove any existing popover
+        document.querySelectorAll('.toolbar-tip-popover').forEach(p => p.remove());
+
+        const pop = document.createElement('div');
+        pop.className = 'toolbar-tip-popover';
+        pop.innerHTML = `
+          <div class="tip-popover-text">${escapeHtml(tip)}</div>
+          <button class="tip-popover-close">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        `;
+        btn.parentElement.appendChild(pop);
+
+        pop.querySelector('.tip-popover-close').addEventListener('click', (e) => {
+          e.stopPropagation();
+          pop.remove();
+        });
+
+        // Close on outside tap
+        const outsideClose = (e) => {
+          if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', outsideClose); }
+        };
+        setTimeout(() => document.addEventListener('click', outsideClose), 10);
+      });
+    });
 
     // Restore pulse section if we have saved data (session restore)
     if (pulseData && pulseData.length > 0) {
@@ -1093,22 +1171,21 @@
 
   // ── Pulse Review Full Screen ───────────────────────
   const openPulseScreen = (flags, docText, limits, blockEl) => {
-    // Build or reuse pulse screen
-    let screen = document.getElementById('screen-pulse');
-    if (!screen) {
-      screen = document.createElement('div');
-      screen.id = 'screen-pulse';
-      screen.className = 'screen pulse-screen';
-      document.body.appendChild(screen);
+    // Use a fixed overlay panel — avoids messing with the screen stack
+    let panel = document.getElementById('pulseFullPanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'pulseFullPanel';
+      panel.className = 'pulse-full-panel';
+      document.body.appendChild(panel);
     }
 
-    // Integrity score — percentage of flags that are "minor" vs critical
     const totalFlags = flags.length;
     const integrityPct = Math.max(0, Math.round(100 - (totalFlags * (limits.pulseFlags === 1 ? 18 : 12))));
     const integrityLabel = integrityPct >= 85 ? 'Clean' : integrityPct >= 65 ? 'Needs attention' : 'Review carefully';
     const integrityColor = integrityPct >= 85 ? 'var(--drift-strong)' : integrityPct >= 65 ? 'var(--drift-moderate)' : 'var(--crimson)';
 
-    screen.innerHTML = `
+    panel.innerHTML = `
       <div class="pulse-screen-topbar">
         <button class="pulse-back-btn" id="pulseBackBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
@@ -1124,29 +1201,27 @@
           <span class="pulse-integrity-score" style="color:${integrityColor}">${integrityPct}% — ${integrityLabel}</span>
         </div>
         <div class="pulse-integrity-track">
-          <div class="pulse-integrity-fill" style="width:${integrityPct}%;background:${integrityColor}"></div>
+          <div class="pulse-integrity-fill" style="width:0%;background:${integrityColor}" data-target="${integrityPct}"></div>
         </div>
         <div class="pulse-integrity-sub">${totalFlags} flag${totalFlags !== 1 ? 's' : ''} found · Tap any highlight to review</div>
       </div>
 
       <div class="pulse-doc-view" id="pulseDocView"></div>
 
-      <div class="pulse-flag-drawer" id="pulseFlagDrawer" style="display:none">
+      <div class="pulse-flag-drawer" id="pulseFlagDrawer">
         <div class="pulse-drawer-handle"></div>
         <div class="pulse-drawer-inner" id="pulseDrawerInner"></div>
       </div>
-      <div class="pulse-drawer-overlay" id="pulseDrawerOverlay" style="display:none"></div>
+      <div class="pulse-drawer-overlay" id="pulseDrawerOverlay"></div>
     `;
 
     // Build highlighted doc
-    const docView = screen.querySelector('#pulseDocView');
+    const docView = panel.querySelector('#pulseDocView');
     let html = escapeHtml(docText);
 
-    // Highlight each flagged excerpt in order
     flags.forEach((flag, idx) => {
       if (!flag.excerpt) return;
       const escaped = escapeHtml(flag.excerpt);
-      // Replace only first occurrence
       const typeClass = (flag.type || '').toLowerCase().replace(/\s+/g, '-');
       html = html.replace(
         escaped,
@@ -1154,30 +1229,33 @@
       );
     });
 
-    // Wrap paragraphs
     const paragraphs = html.split(/\n\n+/).filter(p => p.trim());
     docView.innerHTML = paragraphs.map(p => `<p class="pulse-doc-para">${p}</p>`).join('');
 
-    // Attach tap handlers to highlights
     docView.querySelectorAll('.pulse-highlight').forEach(mark => {
       mark.addEventListener('click', () => {
         const idx = parseInt(mark.dataset.flag);
-        openFlagDrawer(flags[idx], idx, flags.length, mark, limits, docText, blockEl, screen);
+        openFlagDrawer(flags[idx], idx, flags.length, mark, limits, docText, blockEl, panel);
       });
     });
 
-    // Back button
-    screen.querySelector('#pulseBackBtn').addEventListener('click', () => {
-      screen.classList.remove('active');
-      setTimeout(() => screen.classList.add('exit'), 10);
-      setTimeout(() => screen.classList.remove('exit'), 410);
+    // Animate integrity bar after paint
+    requestAnimationFrame(() => {
+      const fill = panel.querySelector('.pulse-integrity-fill');
+      if (fill) {
+        setTimeout(() => { fill.style.width = fill.dataset.target + '%'; }, 80);
+      }
     });
 
-    // Close drawer on overlay tap
-    screen.querySelector('#pulseDrawerOverlay').addEventListener('click', () => closeFlagDrawer(screen));
+    // Back button — just hide the panel, no screen stack change
+    panel.querySelector('#pulseBackBtn').addEventListener('click', () => {
+      panel.classList.remove('pulse-panel-visible');
+    });
 
-    // Show the screen
-    showScreen('screen-pulse');
+    panel.querySelector('#pulseDrawerOverlay').addEventListener('click', () => closeFlagDrawer(panel));
+
+    // Show panel
+    requestAnimationFrame(() => panel.classList.add('pulse-panel-visible'));
   };
 
   const openFlagDrawer = (flag, idx, total, markEl, limits, docText, blockEl, screen) => {
