@@ -321,6 +321,7 @@ const PhinityCore = (() => {
       const user = await getUser();
       if (!user) return [];
 
+      // Primary: query sessions table directly (always has pinned column)
       const { data, error } = await db
         .from('sessions')
         .select('id, user_id, topic, prompt, context, pinned, created_at, drift_score')
@@ -328,11 +329,27 @@ const PhinityCore = (() => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) throw error;
+      if (!error && data) {
+        localStorage.setItem(CACHE.SESSIONS, JSON.stringify(data));
+        return data;
+      }
 
-      localStorage.setItem(CACHE.SESSIONS, JSON.stringify(data || []));
-      return data || [];
+      // Fallback: try session_list view if sessions table direct query fails
+      const { data: viewData, error: viewError } = await db
+        .from('session_list')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!viewError && viewData) {
+        localStorage.setItem(CACHE.SESSIONS, JSON.stringify(viewData));
+        return viewData;
+      }
+
+      throw error || viewError;
     } catch (e) {
+      console.warn('loadSessions error, falling back to cache:', e);
       const cached = localStorage.getItem(CACHE.SESSIONS);
       return cached ? JSON.parse(cached) : [];
     }
@@ -358,19 +375,17 @@ const PhinityCore = (() => {
   };
 
   const togglePinSession = async (sessionId, currentlyPinned) => {
-    // Safety: never run an unfiltered update
-    if (!sessionId || typeof sessionId !== 'string' || sessionId.trim() === '') {
+    if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
       throw new Error('togglePinSession: invalid sessionId — update aborted');
     }
     const user = await getUser();
-    if (!user) throw new Error('togglePinSession: no authenticated user');
+    if (!user) throw new Error('togglePinSession: not authenticated');
     const { error } = await db
       .from('sessions')
       .update({ pinned: !currentlyPinned })
       .eq('id', sessionId)
       .eq('user_id', user.id);
     if (error) throw error;
-    // Invalidate cache so next loadSessions fetches fresh pinned state
     try { localStorage.removeItem(CACHE.SESSIONS); } catch (_) {}
   };
 

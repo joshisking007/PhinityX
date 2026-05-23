@@ -1096,11 +1096,10 @@
         // Append to body so it's never clipped by overflow:hidden parents
         document.body.appendChild(pop);
 
-        // Position below the button using fixed coords
+        // Position below the button, clamped within viewport
         const rect = btn.getBoundingClientRect();
         const popW = 230;
         let left = rect.left + rect.width / 2 - popW / 2;
-        // Keep within viewport horizontally
         left = Math.max(12, Math.min(left, window.innerWidth - popW - 12));
         pop.style.left = left + 'px';
         pop.style.top  = (rect.bottom + 8) + 'px';
@@ -1110,7 +1109,6 @@
           pop.remove();
         });
 
-        // Close on outside tap
         const outsideClose = (e) => {
           if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('click', outsideClose); }
         };
