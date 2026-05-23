@@ -444,12 +444,15 @@
 
     applyFace(getFacePref());
 
-    document.getElementById('faceToggleBtn').addEventListener('click', () => {
-      const next = !getFacePref();
-      saveFacePref(next);
-      bumpFaceCount(next);
-      applyFace(next);
-    });
+    const faceBtn = document.getElementById('faceToggleBtn');
+    if (faceBtn) {
+      faceBtn.addEventListener('click', () => {
+        const next = !getFacePref();
+        saveFacePref(next);
+        bumpFaceCount(next);
+        applyFace(next);
+      });
+    }
   };
 
   const handleHomePromptSend = () => {
@@ -481,24 +484,98 @@
       return;
     }
 
-    list.innerHTML = sessions.map(s => {
+    // Pinned sessions float to top
+    const sorted = [...sessions].sort((a, b) => {
+      const ap = a.pinned ? 0 : 1;
+      const bp = b.pinned ? 0 : 1;
+      return ap - bp;
+    });
+
+    list.innerHTML = sorted.map(s => {
       const d = new Date(s.created_at || s.timestamp);
       const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      return `<button class="session-item" data-id="${s.id}">
-        <span class="session-item-title">${escapeHtml(s.topic || s.prompt || 'Untitled')}</span>
-        <span class="session-item-meta">
-          <span>${dateStr}</span>
-          <span>${s.context || 'university'}</span>
-        </span>
-      </button>`;
+      const pinned  = !!s.pinned;
+      return `<div class="session-item${pinned ? ' pinned' : ''}" data-id="${s.id}">
+        <button class="session-item-body" data-id="${s.id}">
+          <span class="session-item-title">${escapeHtml(s.topic || s.prompt || 'Untitled')}</span>
+          <span class="session-item-meta">
+            <span>${dateStr}</span>
+            <span>${s.context || 'university'}</span>
+          </span>
+        </button>
+        <div class="session-item-actions">
+          <button class="session-action-btn pin-btn${pinned ? ' active' : ''}" data-id="${s.id}" data-pinned="${pinned}" title="Pin chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="${pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4"/><path d="M9 15l-4.5 4.5"/><path d="M14.5 4l5.5 5.5"/></svg>
+          </button>
+          <button class="session-action-btn delete-btn" data-id="${s.id}" title="Delete chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
+          </button>
+        </div>
+      </div>`;
     }).join('');
 
-    list.querySelectorAll('.session-item').forEach(btn => {
+    // Restore session on body click
+    list.querySelectorAll('.session-item-body').forEach(btn => {
       btn.addEventListener('click', () => {
         closeSidebar();
         restoreSession(btn.dataset.id);
       });
     });
+
+    // Pin toggle — passes current pinned state so DB flips it
+    list.querySelectorAll('.pin-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const currentlyPinned = btn.dataset.pinned === 'true';
+        await PhinityCore.togglePinSession(btn.dataset.id, currentlyPinned);
+        await renderSessionSidebar();
+      });
+    });
+
+    // Delete with confirmation
+    list.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showDeleteConfirm(btn.dataset.id);
+      });
+    });
+  };
+
+  // ── Delete confirmation ───────────────────────────
+  const showDeleteConfirm = (sessionId) => {
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    const confirmBtn = document.getElementById('deleteConfirmYes');
+    const cancelBtn  = document.getElementById('deleteConfirmNo');
+
+    overlay.style.display = 'flex';
+
+    const cleanup = () => { overlay.style.display = 'none'; };
+
+    const onConfirm = async () => {
+      cleanup();
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click',  onCancel);
+      // If deleting the active session, reset home
+      if (currentSessionId === sessionId) {
+        currentSessionId    = null;
+        currentDocumentText = null;
+        currentPulseData    = null;
+        currentMessages     = [];
+        clearChat();
+        showEmptyState();
+      }
+      await PhinityCore.deleteSession(sessionId);
+      await renderSessionSidebar();
+    };
+
+    const onCancel = () => {
+      cleanup();
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click',  onCancel);
+    };
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click',  onCancel);
   };
 
   // ── New Chat Session ──────────────────────────────
@@ -576,9 +653,17 @@
     const canGen = await PhinityCore.canGenerateDoc();
     if (!canGen) { appendLimitNotice(); return; }
 
+    // ── Prompt refinement — catch vague/short prompts ──
+    const isVague = promptText.trim().split(/\s+/).length < 6;
+    if (isVague) {
+      const confirmed = await showPromptRefinementStep(promptText);
+      if (!confirmed) return;
+    }
+
     appendUserMessage(promptText);
     currentMessages.push({ role: 'user', text: promptText });
 
+    // Missing attachment warning — only if NO attachments at all
     if (pendingAttachments.length === 0 && pendingImageFiles.length === 0) {
       const continued = await showMissingAttachmentWarning();
       if (!continued) return;
@@ -586,10 +671,15 @@
 
     const attachmentContext = buildAttachmentContextString();
 
+    // Build image payloads from stored base64
+    const imagePayloads = pendingAttachments
+      .filter(a => a.type === 'image' && a.base64)
+      .map(a => ({ name: a.name, base64: a.base64, mediaType: a.mediaType }));
+
     // ── Detection risk warning ─────────────────────
     const profile = PhinityCore.loadProfileCached();
-    const tone  = parseInt(profile?.style_tone  || 50);
-    const vocab = parseInt(profile?.style_vocab || 50);
+    const tone  = parseInt(profile?.styleTone  || profile?.style_tone  || 50);
+    const vocab = parseInt(profile?.styleVocab || profile?.style_vocab || 50);
     if (tone >= 66 || vocab >= 66) {
       const proceed = await showDetectionRiskWarning(tone, vocab);
       if (!proceed) return;
@@ -611,22 +701,20 @@
     }, 1800);
 
     try {
-      const result = await PhinityCore.generateDocument(promptText, attachmentContext, pendingImageFiles);
+      const result = await PhinityCore.generateDocument(promptText, attachmentContext, imagePayloads);
       clearInterval(statusIv);
       thinkingEl.remove();
 
-      // generateDocument returns { document, sessionId }
       currentDocumentText = result.document || result;
       if (result.sessionId) {
         currentSessionId = result.sessionId;
-        // Patch the topic so the sidebar shows a meaningful title
         const title = deriveSessionTitle(promptText);
         PhinityCore.db
           .from('sessions')
           .update({ topic: title })
           .eq('id', currentSessionId)
           .then(() => {})
-          .catch(() => {}); // non-blocking, best-effort
+          .catch(() => {});
       }
 
       let driftResult = null;
@@ -639,7 +727,6 @@
       appendDocumentBlock(currentDocumentText, null, driftResult);
       currentMessages.push({ role: 'document', text: currentDocumentText, drift: driftResult });
 
-      // Save chat history to Supabase so it survives refresh
       if (currentSessionId) {
         PhinityCore.saveMessages(currentSessionId, currentMessages).catch(() => {});
       }
@@ -648,14 +735,14 @@
       clearAttachments();
       PhinityCore.clearProfileOverride();
 
-      // ── Passive tracking ───────────────────────
-      // Increment session count and log drift for fingerprint evolution
+      // Show first-use Pulse hint
+      showFeatureHint('pulse');
+
       try {
         const profile = PhinityCore.loadProfileCached();
         const newCount = (profile?.sessionCount || 0) + 1;
         await PhinityCore.updateProfileField('sessionCount', newCount);
 
-        // Log drift score to drift_log table for fingerprint evolution
         if (currentSessionId && driftResult) {
           await PhinityCore.db.from('drift_log').insert({
             user_id:    (await PhinityCore.getUser()).id,
@@ -666,10 +753,8 @@
           });
         }
 
-        // 5-session re-assessment check (Core + Pro only)
         await checkReassessment();
       } catch (trackErr) {
-        // Non-blocking — tracking errors never surface to user
         console.warn('Passive tracking error:', trackErr);
       }
 
@@ -683,6 +768,108 @@
         appendPhinityMessage(`Something went wrong: ${err.message}. Please try again.`);
       }
     }
+  };
+
+  // ── Prompt Refinement — intercept vague/short prompts ──
+  const showPromptRefinementStep = (promptText) => {
+    return new Promise((resolve) => {
+      const area = document.getElementById('chatArea');
+      const el = document.createElement('div');
+      el.className = 'chat-msg phinity refinement-msg';
+      el.innerHTML = `
+        <div class="chat-bubble refinement-bubble">
+          <div class="refinement-header">
+            <span class="refinement-icon">✦</span>
+            <span>That's a short prompt. Want me to generate from this, or add more detail first?</span>
+          </div>
+          <div class="refinement-preview">"${escapeHtml(promptText)}"</div>
+          <div class="refinement-actions">
+            <button class="inline-action refinement-go">Generate now</button>
+            <button class="inline-action refinement-edit" style="margin-left:0.5rem">Let me refine it</button>
+          </div>
+        </div>
+      `;
+      area.appendChild(el);
+      scrollChat();
+
+      el.querySelector('.refinement-go').addEventListener('click', () => {
+        el.querySelector('.refinement-go').textContent = 'Got it. Generating…';
+        el.querySelector('.refinement-go').disabled = true;
+        el.querySelector('.refinement-edit').disabled = true;
+        resolve(true);
+      });
+
+      el.querySelector('.refinement-edit').addEventListener('click', () => {
+        // Put the text back in the prompt box for editing
+        const promptBox = document.getElementById('homePrompt');
+        if (promptBox) {
+          promptBox.value = promptText;
+          promptBox.focus();
+          promptBox.setSelectionRange(promptBox.value.length, promptBox.value.length);
+        }
+        el.remove();
+        resolve(false);
+      });
+    });
+  };
+
+  // ── Feature Hints — first-use tooltips ─────────────
+  const HINT_KEY = 'phx_seen_hints';
+
+  const getSeenHints = () => {
+    try { return JSON.parse(localStorage.getItem(HINT_KEY) || '{}'); } catch { return {}; }
+  };
+
+  const markHintSeen = (key) => {
+    const hints = getSeenHints();
+    hints[key] = true;
+    localStorage.setItem(HINT_KEY, JSON.stringify(hints));
+  };
+
+  const showFeatureHint = (key) => {
+    const seen = getSeenHints();
+    if (seen[key]) return;
+    markHintSeen(key);
+
+    const hints = {
+      pulse: {
+        title: 'What is Pulse Review?',
+        body: 'Pulse scans your document for moments that could raise flags — unusual phrasing, structural weak points, or tone inconsistencies. Tap it on any document to see a full analysis.',
+      },
+      drift: {
+        title: 'What is Voice Drift?',
+        body: 'This score measures how closely the output matches your writing fingerprint. "Strong" means your voice is intact. "Drifting" means the document sounds more generic than usual.',
+      },
+    };
+
+    const hint = hints[key];
+    if (!hint) return;
+
+    const area = document.getElementById('chatArea');
+    const el = document.createElement('div');
+    el.className = 'feature-hint';
+    el.innerHTML = `
+      <div class="feature-hint-inner">
+        <div class="feature-hint-title">${escapeHtml(hint.title)}</div>
+        <div class="feature-hint-body">${escapeHtml(hint.body)}</div>
+        <button class="feature-hint-dismiss">Got it</button>
+      </div>
+    `;
+    area.appendChild(el);
+    scrollChat();
+
+    el.querySelector('.feature-hint-dismiss').addEventListener('click', () => {
+      el.classList.add('hint-fade-out');
+      setTimeout(() => el.remove(), 400);
+    });
+
+    // Auto-dismiss after 8s
+    setTimeout(() => {
+      if (el.parentNode) {
+        el.classList.add('hint-fade-out');
+        setTimeout(() => el.remove(), 400);
+      }
+    }, 8000);
   };
 
   const showMissingAttachmentWarning = () => {
@@ -766,7 +953,16 @@
 
   const buildAttachmentContextString = () => {
     if (pendingAttachments.length === 0) return null;
-    return pendingAttachments.map(a => `[${a.name}]: ${a.content || '(binary file attached)'}`).join('\n\n');
+    const parts = pendingAttachments.map(a => {
+      if (a.type === 'image') {
+        return `[IMAGE: ${a.name}] — visual reference attached separately`;
+      }
+      if (a.content) {
+        return `[DOCUMENT: ${a.name}]\n${a.content.slice(0, 8000)}${a.content.length > 8000 ? '\n...(truncated)' : ''}`;
+      }
+      return `[FILE: ${a.name}] — content unavailable`;
+    });
+    return parts.join('\n\n---\n\n');
   };
 
   // ── Chat UI ───────────────────────────────────────
@@ -850,7 +1046,12 @@
     // ── Pulse Review ──────────────────────────────
     blockEl.querySelector('#tb-pulse').addEventListener('click', async () => {
       const btn = blockEl.querySelector('#tb-pulse');
-      if (btn.dataset.loaded === 'true') return;
+
+      // If already loaded, just open the pulse screen
+      if (btn.dataset.loaded === 'true' && currentPulseData) {
+        openPulseScreen(currentPulseData, currentDocumentText, limits, blockEl);
+        return;
+      }
 
       btn.textContent = 'Auditing…';
       btn.disabled = true;
@@ -860,18 +1061,16 @@
         const cappedFlags = allFlags.slice(0, limits.pulseFlags);
         currentPulseData = cappedFlags;
 
-        blockEl.querySelector('.pulse-section')?.remove();
-
-        if (cappedFlags.length > 0) {
-          blockEl.appendChild(buildPulseSection(cappedFlags, docText));
-        } else {
-          appendPhinityMessage('Pulse Review found no significant judgment calls. The document reads cleanly.');
-        }
-
         btn.innerHTML = 'Pulse Review ✓';
         btn.classList.add('active-check');
         btn.dataset.loaded = 'true';
         btn.disabled = false;
+
+        if (cappedFlags.length > 0) {
+          openPulseScreen(cappedFlags, docText, limits, blockEl);
+        } else {
+          appendPhinityMessage('Pulse Review found no significant judgment calls. The document reads cleanly.');
+        }
 
         // Free tier nudge if more flags were found but capped
         if (tier === 'free' && allFlags.length > 1) {
@@ -887,8 +1086,175 @@
 
     // ── Voice Drift ───────────────────────────────
     blockEl.querySelector('#tb-drift').addEventListener('click', () => {
+      showFeatureHint('drift');
       showDriftPanel(driftResult, driftScore, limits, docText, blockEl);
     });
+  };
+
+  // ── Pulse Review Full Screen ───────────────────────
+  const openPulseScreen = (flags, docText, limits, blockEl) => {
+    // Build or reuse pulse screen
+    let screen = document.getElementById('screen-pulse');
+    if (!screen) {
+      screen = document.createElement('div');
+      screen.id = 'screen-pulse';
+      screen.className = 'screen pulse-screen';
+      document.body.appendChild(screen);
+    }
+
+    // Integrity score — percentage of flags that are "minor" vs critical
+    const totalFlags = flags.length;
+    const integrityPct = Math.max(0, Math.round(100 - (totalFlags * (limits.pulseFlags === 1 ? 18 : 12))));
+    const integrityLabel = integrityPct >= 85 ? 'Clean' : integrityPct >= 65 ? 'Needs attention' : 'Review carefully';
+    const integrityColor = integrityPct >= 85 ? 'var(--drift-strong)' : integrityPct >= 65 ? 'var(--drift-moderate)' : 'var(--crimson)';
+
+    screen.innerHTML = `
+      <div class="pulse-screen-topbar">
+        <button class="pulse-back-btn" id="pulseBackBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          Back
+        </button>
+        <span class="pulse-screen-title">Pulse Review</span>
+        <span></span>
+      </div>
+
+      <div class="pulse-integrity-bar-wrap">
+        <div class="pulse-integrity-header">
+          <span class="pulse-integrity-label">Voice Integrity</span>
+          <span class="pulse-integrity-score" style="color:${integrityColor}">${integrityPct}% — ${integrityLabel}</span>
+        </div>
+        <div class="pulse-integrity-track">
+          <div class="pulse-integrity-fill" style="width:${integrityPct}%;background:${integrityColor}"></div>
+        </div>
+        <div class="pulse-integrity-sub">${totalFlags} flag${totalFlags !== 1 ? 's' : ''} found · Tap any highlight to review</div>
+      </div>
+
+      <div class="pulse-doc-view" id="pulseDocView"></div>
+
+      <div class="pulse-flag-drawer" id="pulseFlagDrawer" style="display:none">
+        <div class="pulse-drawer-handle"></div>
+        <div class="pulse-drawer-inner" id="pulseDrawerInner"></div>
+      </div>
+      <div class="pulse-drawer-overlay" id="pulseDrawerOverlay" style="display:none"></div>
+    `;
+
+    // Build highlighted doc
+    const docView = screen.querySelector('#pulseDocView');
+    let html = escapeHtml(docText);
+
+    // Highlight each flagged excerpt in order
+    flags.forEach((flag, idx) => {
+      if (!flag.excerpt) return;
+      const escaped = escapeHtml(flag.excerpt);
+      // Replace only first occurrence
+      const typeClass = (flag.type || '').toLowerCase().replace(/\s+/g, '-');
+      html = html.replace(
+        escaped,
+        `<mark class="pulse-highlight pulse-highlight-${typeClass}" data-flag="${idx}">${escaped}</mark>`
+      );
+    });
+
+    // Wrap paragraphs
+    const paragraphs = html.split(/\n\n+/).filter(p => p.trim());
+    docView.innerHTML = paragraphs.map(p => `<p class="pulse-doc-para">${p}</p>`).join('');
+
+    // Attach tap handlers to highlights
+    docView.querySelectorAll('.pulse-highlight').forEach(mark => {
+      mark.addEventListener('click', () => {
+        const idx = parseInt(mark.dataset.flag);
+        openFlagDrawer(flags[idx], idx, flags.length, mark, limits, docText, blockEl, screen);
+      });
+    });
+
+    // Back button
+    screen.querySelector('#pulseBackBtn').addEventListener('click', () => {
+      screen.classList.remove('active');
+      setTimeout(() => screen.classList.add('exit'), 10);
+      setTimeout(() => screen.classList.remove('exit'), 410);
+    });
+
+    // Close drawer on overlay tap
+    screen.querySelector('#pulseDrawerOverlay').addEventListener('click', () => closeFlagDrawer(screen));
+
+    // Show the screen
+    showScreen('screen-pulse');
+  };
+
+  const openFlagDrawer = (flag, idx, total, markEl, limits, docText, blockEl, screen) => {
+    const drawer = screen.querySelector('#pulseFlagDrawer');
+    const overlay = screen.querySelector('#pulseDrawerOverlay');
+    const inner = screen.querySelector('#pulseDrawerInner');
+
+    const typeLabel = flag.type || 'Judgment call';
+    const canAct = limits.pulseFlags > 1; // Core/Pro can act
+
+    inner.innerHTML = `
+      <div class="drawer-flag-meta">
+        <span class="drawer-flag-type">${escapeHtml(typeLabel)}</span>
+        <span class="drawer-flag-count">${idx + 1} of ${total}</span>
+      </div>
+      <div class="drawer-flag-excerpt">"${escapeHtml(flag.excerpt || '')}"</div>
+      <div class="drawer-flag-explain">${escapeHtml(flag.explanation || '')}</div>
+      <div class="drawer-flag-actions" id="drawerActions">
+        <button class="pulse-btn keep" data-action="keep">Keep as is</button>
+        ${canAct ? `
+          <button class="pulse-btn adjust" data-action="adjust">Adjust tone</button>
+          <button class="pulse-btn rephrase" data-action="rephrase">Rephrase</button>
+        ` : `
+          <div class="drawer-upgrade-note">Adjust & Rephrase available on Core &amp; Pro plans.</div>
+        `}
+      </div>
+    `;
+
+    inner.querySelector('[data-action="keep"]')?.addEventListener('click', () => {
+      markEl.classList.add('pulse-resolved');
+      closeFlagDrawer(screen);
+    });
+
+    if (canAct) {
+      inner.querySelectorAll('[data-action="adjust"],[data-action="rephrase"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const action = btn.dataset.action;
+          inner.querySelectorAll('.pulse-btn').forEach(b => b.disabled = true);
+          btn.textContent = action === 'adjust' ? 'Adjusting…' : 'Rephrasing…';
+
+          try {
+            const newText = await PhinityCore.regenerateSection(
+              flag.excerpt, flag.explanation, currentDocumentText, action
+            );
+            currentDocumentText = currentDocumentText.replace(flag.excerpt, newText);
+            // Update doc block on the home screen too
+            const docContent = document.getElementById('docContent');
+            if (docContent) docContent.innerHTML = formatDocText(currentDocumentText);
+            flag.excerpt = newText;
+            markEl.classList.add('pulse-resolved');
+            markEl.textContent = newText;
+            closeFlagDrawer(screen);
+          } catch (e) {
+            inner.querySelectorAll('.pulse-btn').forEach(b => b.disabled = false);
+            btn.textContent = action;
+          }
+        });
+      });
+    }
+
+    drawer.style.display = 'block';
+    overlay.style.display = 'block';
+    requestAnimationFrame(() => {
+      drawer.classList.add('drawer-open');
+      overlay.classList.add('drawer-overlay-visible');
+    });
+  };
+
+  const closeFlagDrawer = (screen) => {
+    const drawer = screen.querySelector('#pulseFlagDrawer');
+    const overlay = screen.querySelector('#pulseDrawerOverlay');
+    drawer.classList.remove('drawer-open');
+    overlay.classList.remove('drawer-overlay-visible');
+    setTimeout(() => {
+      drawer.style.display = 'none';
+      overlay.style.display = 'none';
+    }, 350);
   };
 
   const formatDocText = (text) => {
@@ -1131,12 +1497,28 @@
   };
 
   const handleImageUpload = (e) => {
-    const toAdd = Array.from(e.target.files).slice(0, 5 - pendingImageFiles.length);
-    pendingImageFiles.push(...toAdd);
-    toAdd.forEach(f => pendingAttachments.push({ name: f.name, type: 'image', content: null, file: f }));
+    const files = Array.from(e.target.files).slice(0, 5 - pendingImageFiles.length);
     closeAttachSheet();
-    renderAttachmentPills();
     e.target.value = '';
+
+    files.forEach(f => {
+      pendingImageFiles.push(f);
+      // Read as base64 immediately so it's ready when generation fires
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        pendingAttachments.push({
+          name: f.name,
+          type: 'image',
+          content: null,
+          file: f,
+          base64,
+          mediaType: f.type || 'image/jpeg',
+        });
+        renderAttachmentPills();
+      };
+      reader.readAsDataURL(f);
+    });
   };
 
   const handleDocUpload = async (e) => {
