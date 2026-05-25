@@ -1189,9 +1189,228 @@
         </div>
       </div>
 
+      <div class="profile-section" id="evolutionLogSection" style="display:none">
+        <div class="profile-section-header">
+          <span>Evolution Log</span>
+        </div>
+        <p class="pf-section-desc">Your voice drift history across all sessions. Tracks how consistently your writing fingerprint comes through over time.</p>
+        <button class="btn-secondary full-width" id="openEvolutionLog">View Evolution Log</button>
+      </div>
+
       <div style="padding: 0 0 1rem;">
         <button class="btn-ghost signout-btn" id="signOutBtn">Sign out</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       EVOLUTION LOG PANEL (Pro)
+  ════════════════════════════════════════════ -->
+  <style>
+  .evo-panel {
+    position: fixed;
+    inset: 0;
+    background: var(--surface-1, #0e0e0e);
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+  .evo-panel-visible {
+    transform: translateX(0);
+  }
+  .evo-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border, #1e1e1e);
+    flex-shrink: 0;
+  }
+  .evo-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: none;
+    border: none;
+    color: var(--text-2, #aaa);
+    font-size: 0.875rem;
+    cursor: pointer;
+    padding: 0.25rem 0;
+  }
+  .evo-topbar-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-1, #fff);
+  }
+  .evo-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--border, #1e1e1e);
+    flex-shrink: 0;
+  }
+  .evo-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.1rem 0.5rem;
+    border-right: 1px solid var(--border, #1e1e1e);
+  }
+  .evo-summary-item:last-child { border-right: none; }
+  .evo-summary-val {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-1, #fff);
+    font-variant-numeric: tabular-nums;
+  }
+  .evo-summary-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-3, #555);
+    margin-top: 0.35rem;
+  }
+  .evo-strong   { color: #34d399; }
+  .evo-moderate { color: #fbbf24; }
+  .evo-drifting { color: #ef4444; }
+  .evo-trend-wrap {
+    padding: 1rem 1.25rem 0.5rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border, #1e1e1e);
+  }
+  .evo-trend-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3, #555);
+    margin-bottom: 0.6rem;
+  }
+  #evoTrendChart {
+    width: 100%;
+    display: block;
+  }
+  .evo-trend-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--text-3, #555);
+    margin-top: 0.3rem;
+    padding-bottom: 0.5rem;
+  }
+  .evo-list-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3, #555);
+    padding: 0.85rem 1.25rem 0.4rem;
+    flex-shrink: 0;
+  }
+  .evo-list {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2rem;
+  }
+  .evo-entry {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border, #1e1e1e);
+  }
+  .evo-entry-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+  }
+  .evo-entry-date {
+    font-size: 0.8rem;
+    color: var(--text-2, #aaa);
+  }
+  .evo-entry-score {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .evo-entry-reason {
+    font-size: 0.78rem;
+    color: var(--text-3, #666);
+    line-height: 1.5;
+  }
+  .evo-loading, .evo-empty {
+    padding: 2rem 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text-3, #555);
+    text-align: center;
+  }
+  .pf-section-desc {
+    font-size: 0.78rem;
+    color: var(--text-3, #666);
+    padding: 0 1rem 0.75rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .btn-secondary {
+    background: var(--surface-3, #1e1e1e);
+    border: 1px solid var(--border, #2a2a2a);
+    color: var(--text-1, #fff);
+    border-radius: 0.6rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-secondary:hover { background: var(--surface-4, #252525); }
+  .btn-secondary.full-width {
+    display: block;
+    width: calc(100% - 2rem);
+    margin: 0 1rem 0.5rem;
+    text-align: center;
+  }
+  </style>
+
+  <div id="evolutionLogPanel" class="evo-panel">
+    <div class="evo-topbar">
+      <button class="evo-back-btn" id="evoBackBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+      <span class="evo-topbar-title">Evolution Log</span>
+      <span></span>
+    </div>
+
+    <div class="evo-summary" id="evoSummary">
+      <div class="evo-summary-item">
+        <span class="evo-summary-val" id="evoTotalSessions">—</span>
+        <span class="evo-summary-label">Sessions</span>
+      </div>
+      <div class="evo-summary-item">
+        <span class="evo-summary-val evo-strong" id="evoStrongCount">—</span>
+        <span class="evo-summary-label">Strong</span>
+      </div>
+      <div class="evo-summary-item">
+        <span class="evo-summary-val evo-moderate" id="evoModerateCount">—</span>
+        <span class="evo-summary-label">Moderate</span>
+      </div>
+      <div class="evo-summary-item">
+        <span class="evo-summary-val evo-drifting" id="evoDriftingCount">—</span>
+        <span class="evo-summary-label">Drifting</span>
+      </div>
+    </div>
+
+    <div class="evo-trend-wrap">
+      <div class="evo-trend-label">Voice Consistency Trend</div>
+      <canvas id="evoTrendChart" height="90"></canvas>
+      <div class="evo-trend-axis" id="evoTrendAxis"></div>
+    </div>
+
+    <div class="evo-list-label">Session History</div>
+    <div class="evo-list" id="evoList">
+      <div class="evo-loading">Loading…</div>
     </div>
   </div>
 

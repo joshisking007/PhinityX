@@ -1704,6 +1704,12 @@
     document.getElementById('pf-tier').textContent     = cap(profile.tier || 'free');
     document.getElementById('pf-docsUsed').textContent = profile.docsUsedCount != null
       ? `${profile.docsUsedCount} this month` : '—';
+
+    // Show Evolution Log entry only for Pro
+    const evoSection = document.getElementById('evolutionLogSection');
+    if (evoSection) {
+      evoSection.style.display = PhinityCore.TIER_LIMITS[profile.tier || 'free'].evolutionLog ? 'block' : 'none';
+    }
   };
 
   const initProfileScreen = () => {
@@ -1719,6 +1725,164 @@
       showScreen('screen-login', false);
       screenStack.length = 0;
     });
+
+    document.getElementById('openEvolutionLog')?.addEventListener('click', () => {
+      openEvolutionLog();
+    });
+  };
+
+  // ── Evolution Log ─────────────────────────────────
+  const openEvolutionLog = async () => {
+    const panel = document.getElementById('evolutionLogPanel');
+    if (!panel) return;
+
+    // Reset to loading state
+    document.getElementById('evoList').innerHTML = '<div class="evo-loading">Loading…</div>';
+    document.getElementById('evoTotalSessions').textContent = '—';
+    document.getElementById('evoStrongCount').textContent   = '—';
+    document.getElementById('evoModerateCount').textContent = '—';
+    document.getElementById('evoDriftingCount').textContent = '—';
+
+    panel.classList.add('evo-panel-visible');
+
+    document.getElementById('evoBackBtn').onclick = () => {
+      panel.classList.remove('evo-panel-visible');
+    };
+
+    try {
+      const entries = await PhinityCore.getDriftLog(100);
+      renderEvolutionLog(entries);
+    } catch (e) {
+      document.getElementById('evoList').innerHTML =
+        '<div class="evo-loading">Could not load Evolution Log. Please try again.</div>';
+    }
+  };
+
+  const renderEvolutionLog = (entries) => {
+    const total    = entries.length;
+    const strong   = entries.filter(e => e.score === 'Strong').length;
+    const moderate = entries.filter(e => e.score === 'Moderate').length;
+    const drifting = entries.filter(e => e.score === 'Drifting').length;
+
+    document.getElementById('evoTotalSessions').textContent = total;
+    document.getElementById('evoStrongCount').textContent   = strong;
+    document.getElementById('evoModerateCount').textContent = moderate;
+    document.getElementById('evoDriftingCount').textContent = drifting;
+
+    // Trend chart — canvas sparkline, most recent 20 entries, oldest left
+    const chartEntries = [...entries].reverse().slice(-20);
+    drawEvoTrendChart(chartEntries);
+
+    // Session list
+    const list = document.getElementById('evoList');
+    if (total === 0) {
+      list.innerHTML = '<div class="evo-empty">No sessions recorded yet. Generate your first document to start tracking your voice.</div>';
+      return;
+    }
+
+    list.innerHTML = entries.map(e => {
+      const d = new Date(e.logged_at || e.created_at);
+      const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const scoreClass = e.score === 'Strong' ? 'evo-strong' : e.score === 'Drifting' ? 'evo-drifting' : 'evo-moderate';
+      const dot = e.score === 'Strong' ? '●' : e.score === 'Drifting' ? '●' : '●';
+      return `
+        <div class="evo-entry">
+          <div class="evo-entry-top">
+            <span class="evo-entry-date">${dateStr}</span>
+            <span class="evo-entry-score ${scoreClass}">${dot} ${e.score || 'Moderate'}</span>
+          </div>
+          ${e.reason ? `<div class="evo-entry-reason">${escapeHtml(e.reason)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  };
+
+  const drawEvoTrendChart = (entries) => {
+    const canvas = document.getElementById('evoTrendChart');
+    if (!canvas || !canvas.getContext) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const W   = canvas.offsetWidth  || canvas.parentElement.offsetWidth || 300;
+    const H   = 90;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    if (entries.length < 2) return;
+
+    // Score → numeric: Strong=1, Moderate=0.5, Drifting=0
+    const scoreVal = (s) => s === 'Strong' ? 1 : s === 'Drifting' ? 0 : 0.5;
+    const vals = entries.map(e => scoreVal(e.score));
+
+    const pad   = { l: 8, r: 8, t: 12, b: 8 };
+    const chartW = W - pad.l - pad.r;
+    const chartH = H - pad.t - pad.b;
+    const step   = chartW / (vals.length - 1);
+
+    // Subtle grid lines at Strong / Moderate / Drifting
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth   = 1;
+    [0, 0.5, 1].forEach(v => {
+      const y = pad.t + chartH * (1 - v);
+      ctx.beginPath();
+      ctx.moveTo(pad.l, y);
+      ctx.lineTo(pad.l + chartW, y);
+      ctx.stroke();
+    });
+
+    // Area fill
+    const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + chartH);
+    grad.addColorStop(0,   'rgba(52,211,153,0.25)');
+    grad.addColorStop(1,   'rgba(52,211,153,0)');
+    ctx.beginPath();
+    vals.forEach((v, i) => {
+      const x = pad.l + i * step;
+      const y = pad.t + chartH * (1 - v);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad.l + (vals.length - 1) * step, pad.t + chartH);
+    ctx.lineTo(pad.l, pad.t + chartH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth   = 1.5;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
+    vals.forEach((v, i) => {
+      const x = pad.l + i * step;
+      const y = pad.t + chartH * (1 - v);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Dots for Drifting entries — highlight them in red
+    vals.forEach((v, i) => {
+      if (entries[i].score === 'Drifting') {
+        const x = pad.l + i * step;
+        const y = pad.t + chartH * (1 - v);
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+      }
+    });
+
+    // Axis labels: first and last date
+    const axisEl = document.getElementById('evoTrendAxis');
+    if (axisEl && entries.length >= 2) {
+      const fmt = (e) => new Date(e.logged_at || e.created_at)
+        .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      axisEl.innerHTML = `<span>${fmt(entries[0])}</span><span>${fmt(entries[entries.length - 1])}</span>`;
+    }
   };
 
   const PAYSTACK_PUBLIC_KEY = 'pk_live_REPLACE_WITH_YOUR_LIVE_PUBLIC_KEY';
