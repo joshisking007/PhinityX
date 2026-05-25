@@ -1726,8 +1726,8 @@
   // For testing now use: 'pk_test_4e9d480d329b618c4b81...' (your test key from dashboard)
 
   const TIER_PRICES = {
-    core: { label: 'Core', amount: 690000,  naira: '₦6,900' },
-    pro:  { label: 'Pro',  amount: 1380000, naira: '₦13,800' },
+    core: { label: 'Core', amount: 1500000, naira: '₦15,000' },
+    pro:  { label: 'Pro',  amount: 2500000, naira: '₦25,000' },
   };
 
   // Opens the Paystack subscription popup for a given tier.
