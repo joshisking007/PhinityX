@@ -532,6 +532,8 @@ const PhinityCore = (() => {
   // ── Public API ─────────────────────────────────────────
   return {
     db,
+    supabaseUrl:  SUPABASE_URL,
+    supabaseKey:  SUPABASE_ANON_KEY,
     TIER_LIMITS,
     getStanding,
 

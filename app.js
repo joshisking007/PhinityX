@@ -1721,21 +1721,138 @@
     });
   };
 
+  const PAYSTACK_PUBLIC_KEY = 'pk_live_REPLACE_WITH_YOUR_LIVE_PUBLIC_KEY';
+  // ↑ When Paystack approves your account, swap this for your live public key.
+  // For testing now use: 'pk_test_4e9d480d329b618c4b81...' (your test key from dashboard)
+
+  const TIER_PRICES = {
+    core: { label: 'Core', amount: 690000,  naira: '₦6,900' },
+    pro:  { label: 'Pro',  amount: 1380000, naira: '₦13,800' },
+  };
+
+  // Opens the Paystack subscription popup for a given tier.
+  // On success, calls our verify-payment Edge Function to confirm + upgrade tier.
+  const openPaystackForTier = async (tier) => {
+    const price   = TIER_PRICES[tier];
+    const session = await PhinityCore.getSession();
+    if (!session) { alert('Please sign in again.'); return; }
+
+    // Step 1 — Ask our Edge Function to initialise the Paystack transaction
+    // This keeps the plan code server-side and returns an access_code + reference
+    const initRes = await fetch(
+      `${PhinityCore.supabaseUrl}/functions/v1/create-subscription`,
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey':         PhinityCore.supabaseKey,
+        },
+        body: JSON.stringify({ tier }),
+      }
+    );
+
+    const initData = await initRes.json();
+    if (!initRes.ok || !initData.access_code) {
+      alert(`Could not start payment: ${initData.error || 'Unknown error'}`);
+      return;
+    }
+
+    // Step 2 — Open Paystack popup with the access_code
+    const handler = PaystackPop.setup({
+      key:         PAYSTACK_PUBLIC_KEY,
+      access_code: initData.access_code,
+      ref:         initData.reference,
+      email:       session.user.email,
+
+      onSuccess: async (transaction) => {
+        // Step 3 — Verify server-side and upgrade tier
+        try {
+          const verifyRes = await fetch(
+            `${PhinityCore.supabaseUrl}/functions/v1/verify-payment`,
+            {
+              method:  'POST',
+              headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+                'apikey':         PhinityCore.supabaseKey,
+              },
+              body: JSON.stringify({ reference: transaction.reference, tier }),
+            }
+          );
+
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            await PhinityCore.loadProfile();
+            await populateProfileScreen();
+            alert(`You're now on the ${price.label} plan. Welcome! 🎉`);
+          } else {
+            alert(`Payment received but verification failed: ${verifyData.error}. Contact support.`);
+          }
+        } catch (e) {
+          alert('Verification error. Your payment may have gone through — contact support.');
+          console.error('verify-payment error:', e);
+        }
+      },
+
+      onCancel: () => {
+        console.log('Paystack popup closed by user.');
+      },
+    });
+
+    handler.openIframe();
+  };
+
   const handleProfileEdit = async (section) => {
     if (section === 'tier') {
-      const profile = PhinityCore.loadProfileCached();
+      const profile     = PhinityCore.loadProfileCached();
       const currentTier = profile?.tier || 'free';
-      const tiers  = ['free', 'core', 'pro'];
-      const prices = { free: '$0', core: '$8/mo', pro: '$16/mo' };
-      const next   = tiers.filter(t => t !== currentTier);
-      const choice = confirm(
-        `Upgrade plan?\n\nCurrent: ${currentTier}\n\nOptions:\n${next.map(t => `${t} (${prices[t]})`).join(', ')}\n\nThis connects to a payment processor in production. Tap OK to upgrade to the next tier.`
-      );
-      if (choice) {
-        const nextTier = tiers[Math.min(tiers.indexOf(currentTier) + 1, tiers.length - 1)];
-        await PhinityCore.updateProfileField('tier', nextTier);
-        await populateProfileScreen();
-      }
+
+      // Build upgrade modal showing Core and Pro options
+      const overlay = document.createElement('div');
+      overlay.id    = 'upgradeOverlay';
+      overlay.style.cssText = `
+        position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;
+        display:flex;align-items:center;justify-content:center;padding:1.5rem;
+      `;
+
+      const tiers = ['core', 'pro'].filter(t => t !== currentTier && (currentTier === 'free' || t === 'pro'));
+
+      overlay.innerHTML = `
+        <div style="background:var(--surface-2,#1a1a1a);border-radius:1rem;padding:2rem;max-width:340px;width:100%;color:var(--text-1,#fff);">
+          <div style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">Upgrade PhinityX</div>
+          <div style="font-size:0.8rem;color:var(--text-3,#888);margin-bottom:1.5rem;">Current plan: <strong>${currentTier}</strong></div>
+          ${tiers.map(t => `
+            <button data-tier="${t}" style="
+              display:block;width:100%;text-align:left;background:var(--surface-3,#222);
+              border:1px solid var(--border,#333);border-radius:0.75rem;padding:1rem;
+              margin-bottom:0.75rem;cursor:pointer;color:inherit;
+            ">
+              <div style="font-weight:600;font-size:0.95rem;">${TIER_PRICES[t].label} — ${TIER_PRICES[t].naira}/mo</div>
+              <div style="font-size:0.75rem;color:var(--text-3,#888);margin-top:0.25rem;">
+                ${t === 'core' ? '20 docs/month · No watermark · Attachments · Voice drift' : 'Unlimited docs · All features · Priority generation · Docx export'}
+              </div>
+            </button>
+          `).join('')}
+          <button id="upgradeClose" style="
+            width:100%;margin-top:0.25rem;padding:0.65rem;background:transparent;
+            border:none;color:var(--text-3,#888);cursor:pointer;font-size:0.85rem;
+          ">Cancel</button>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#upgradeClose').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+      overlay.querySelectorAll('[data-tier]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          overlay.remove();
+          await openPaystackForTier(btn.dataset.tier);
+        });
+      });
+
     } else if (section === 'academic') {
       const newCgpa = prompt('Update your current CGPA:');
       if (newCgpa && !isNaN(parseFloat(newCgpa))) {
