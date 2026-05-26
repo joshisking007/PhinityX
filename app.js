@@ -1042,6 +1042,10 @@
       ? `Pulse Review <span class="tier-gate-badge">1 flag</span>`
       : 'Pulse Review';
 
+    const docxLabel = limits.docxExport
+      ? 'Download Word'
+      : `Word <span class="tier-gate-badge">Pro</span>`;
+
     const blockEl = document.createElement('div');
     blockEl.className = 'doc-block';
     blockEl.innerHTML = `
@@ -1051,6 +1055,9 @@
           <button class="toolbar-info-btn" data-tip="download" aria-label="What is Download PDF?">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
           </button>
+        </div>
+        <div class="toolbar-btn-group">
+          <button class="doc-tool-btn${limits.docxExport ? '' : ' tier-gated'}" id="tb-docx">${docxLabel}</button>
         </div>
         <div class="toolbar-btn-group">
           <button class="doc-tool-btn" id="tb-pulse">${pulseLabel}</button>
@@ -1129,6 +1136,15 @@
 
     // ── Download PDF ──────────────────────────────
     blockEl.querySelector('#tb-download').addEventListener('click', () => downloadPDF(docText));
+
+    // ── Download Word (.docx) ─────────────────────
+    blockEl.querySelector('#tb-docx').addEventListener('click', () => {
+      if (!limits.docxExport) {
+        appendUpgradeNudge('Word export (.docx) is available on the Pro plan.');
+        return;
+      }
+      downloadDOCX(docText);
+    });
 
     // ── Pulse Review ──────────────────────────────
     blockEl.querySelector('#tb-pulse').addEventListener('click', async () => {
@@ -1310,6 +1326,7 @@
               flag.excerpt, flag.explanation, currentDocumentText, action
             );
             currentDocumentText = currentDocumentText.replace(flag.excerpt, newText);
+            broadcastDocUpdate();
             // Update doc block on the home screen too
             const docContent = document.getElementById('docContent');
             if (docContent) docContent.innerHTML = formatDocText(currentDocumentText);
@@ -1458,6 +1475,7 @@
               flag.excerpt, flag.explanation, currentDocumentText, action
             );
             currentDocumentText = currentDocumentText.replace(flag.excerpt, newText);
+            broadcastDocUpdate();
             const docContent = document.getElementById('docContent');
             if (docContent) docContent.innerHTML = formatDocText(currentDocumentText);
             flag.excerpt = newText;
@@ -1543,6 +1561,67 @@
       appendPhinityMessage('PDF generation failed. Try again or use the print dialog.');
     } finally {
       document.body.removeChild(printDiv);
+    }
+  };
+
+  // ── Word (.docx) Download — client-side via docx.js CDN ──
+  const downloadDOCX = async (docText) => {
+    const btn = document.querySelector('#tb-docx');
+    if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
+
+    try {
+      // docx.js loaded via CDN in index.html (window.docx)
+      if (!window.docx) {
+        appendPhinityMessage('Word export library not loaded. Check your internet connection and try again.');
+        if (btn) { btn.textContent = 'Download Word'; btn.disabled = false; }
+        return;
+      }
+
+      const { Document, Paragraph, TextRun, HeadingLevel, Packer, AlignmentType } = window.docx;
+
+      const paragraphs = docText.split(/\n\n+/).filter(p => p.trim());
+      const children = paragraphs.map((p, i) => {
+        const text = p.trim();
+        // Heuristic: first paragraph that's short and doesn't end with a period → treat as title
+        if (i === 0 && text.length < 120 && !text.endsWith('.')) {
+          return new Paragraph({
+            text,
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.LEFT,
+            spacing: { after: 300 },
+          });
+        }
+        return new Paragraph({
+          children: [new TextRun({ text, size: 24, font: 'Georgia' })],
+          spacing: { after: 200, line: 360 },
+        });
+      });
+
+      const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: { font: 'Georgia', size: 24 },
+            },
+          },
+        },
+        sections: [{ properties: { page: { margin: { top: 1440, right: 1134, bottom: 1440, left: 1134 } } }, children }],
+      });
+
+      const blob   = await Packer.toBlob(doc);
+      const url    = URL.createObjectURL(blob);
+      const a      = document.createElement('a');
+      const firstWords = docText.trim().split(/\s+/).slice(0, 5).join('_').replace(/[^a-zA-Z0-9_]/g, '');
+      a.href     = url;
+      a.download = `PhinityX_${firstWords}_${getDateStr()}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      if (btn) { btn.textContent = 'Download Word'; btn.disabled = false; }
+    } catch (e) {
+      console.error('DOCX error:', e);
+      appendPhinityMessage('Word export failed. Please try again.');
+      if (btn) { btn.textContent = 'Download Word'; btn.disabled = false; }
     }
   };
 
@@ -1705,10 +1784,39 @@
     document.getElementById('pf-docsUsed').textContent = profile.docsUsedCount != null
       ? `${profile.docsUsedCount} this month` : '—';
 
-    // Show Evolution Log entry only for Pro
+    const limits = PhinityCore.TIER_LIMITS[profile.tier || 'free'];
+
+    // Fingerprint Vault (Core + Pro)
+    const vaultSection = document.getElementById('fingerprintVaultSection');
+    if (vaultSection) {
+      vaultSection.style.display = limits.fingerprintVault > 0 ? 'block' : 'none';
+      if (limits.fingerprintVault > 0) refreshVaultList();
+    }
+
+    // Tone Lock (Pro)
+    const toneLockSection = document.getElementById('toneLockSection');
+    if (toneLockSection) {
+      toneLockSection.style.display = limits.toneLock ? 'block' : 'none';
+      const toggle = document.getElementById('toneLockToggle');
+      if (toggle) toggle.checked = PhinityCore.getToneLockPref();
+    }
+
+    // Priority Gen (Pro)
+    const prioritySection = document.getElementById('priorityGenSection');
+    if (prioritySection) {
+      prioritySection.style.display = limits.priorityGen ? 'block' : 'none';
+    }
+
+    // Collaborator Mode (Pro)
+    const collabSection = document.getElementById('collaboratorSection');
+    if (collabSection) {
+      collabSection.style.display = limits.collaboratorMode ? 'block' : 'none';
+    }
+
+    // Evolution Log (Pro)
     const evoSection = document.getElementById('evolutionLogSection');
     if (evoSection) {
-      evoSection.style.display = PhinityCore.TIER_LIMITS[profile.tier || 'free'].evolutionLog ? 'block' : 'none';
+      evoSection.style.display = limits.evolutionLog ? 'block' : 'none';
     }
   };
 
@@ -1729,6 +1837,106 @@
     document.getElementById('openEvolutionLog')?.addEventListener('click', () => {
       openEvolutionLog();
     });
+
+    // ── Fingerprint Vault ─────────────────────────────
+    document.getElementById('saveFingerprintBtn')?.addEventListener('click', async () => {
+      const label = prompt('Name this fingerprint snapshot:');
+      if (!label || !label.trim()) return;
+      const btn = document.getElementById('saveFingerprintBtn');
+      btn.textContent = 'Saving…';
+      btn.disabled = true;
+      try {
+        const res = await PhinityCore.saveFingerprintToVault(label.trim());
+        btn.textContent = 'Save current';
+        btn.disabled = false;
+        refreshVaultList();
+        const limitNote = document.getElementById('vaultLimitNote');
+        if (limitNote && res.vault_max !== Infinity) {
+          limitNote.textContent = res.vault_count >= res.vault_max
+            ? `${res.vault_count}/${res.vault_max} snapshots used. Delete one to save more.`
+            : `${res.vault_count}/${res.vault_max} snapshots used.`;
+        }
+      } catch (e) {
+        btn.textContent = 'Save current';
+        btn.disabled = false;
+        alert(e.code === 'limit_reached' ? 'Vault is full. Delete a snapshot to save a new one.' : 'Failed to save: ' + e.message);
+      }
+    });
+
+    // ── Tone Lock toggle ──────────────────────────────
+    document.getElementById('toneLockToggle')?.addEventListener('change', (e) => {
+      PhinityCore.setToneLockPref(e.target.checked);
+    });
+  };
+
+  // ── Fingerprint Vault helpers ─────────────────────────
+  const refreshVaultList = async () => {
+    const listEl    = document.getElementById('vaultList');
+    const limitNote = document.getElementById('vaultLimitNote');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="vault-loading">Loading…</div>';
+    try {
+      const res = await PhinityCore.loadFingerprintVault();
+      const fps = res.fingerprints || [];
+      const max = res.vault_max;
+
+      if (limitNote) {
+        limitNote.textContent = max === Infinity
+          ? `${fps.length} snapshot${fps.length !== 1 ? 's' : ''} saved`
+          : `${fps.length}/${max} snapshots used`;
+      }
+
+      if (fps.length === 0) {
+        listEl.innerHTML = '<div class="vault-empty">No snapshots yet. Save your current fingerprint to create one.</div>';
+        return;
+      }
+
+      listEl.innerHTML = fps.map(fp => `
+        <div class="vault-item" data-id="${fp.id}">
+          <div class="vault-item-info">
+            <span class="vault-item-label">${escapeHtml(fp.label)}</span>
+            <span class="vault-item-date">${new Date(fp.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</span>
+          </div>
+          <div class="vault-item-actions">
+            <button class="vault-btn apply-vault" data-id="${fp.id}" data-fp='${JSON.stringify(fp.fingerprint_data || {})}'>Apply</button>
+            <button class="vault-btn delete-vault" data-id="${fp.id}">Delete</button>
+          </div>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('.apply-vault').forEach(btn => {
+        btn.addEventListener('click', () => {
+          try {
+            const fpData = JSON.parse(btn.dataset.fp);
+            PhinityCore.applyVaultFingerprint(fpData);
+            btn.textContent = 'Applied ✓';
+            btn.classList.add('active-check');
+            setTimeout(() => { btn.textContent = 'Apply'; btn.classList.remove('active-check'); }, 2500);
+          } catch (e) {
+            alert('Failed to apply fingerprint.');
+          }
+        });
+      });
+
+      listEl.querySelectorAll('.delete-vault').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this fingerprint snapshot?')) return;
+          btn.textContent = '…';
+          btn.disabled = true;
+          try {
+            await PhinityCore.deleteFingerprintFromVault(btn.dataset.id);
+            refreshVaultList();
+          } catch (e) {
+            btn.textContent = 'Delete';
+            btn.disabled = false;
+            alert('Failed to delete: ' + e.message);
+          }
+        });
+      });
+
+    } catch (e) {
+      listEl.innerHTML = '<div class="vault-empty">Could not load vault. Try again.</div>';
+    }
   };
 
   // ── Evolution Log ─────────────────────────────────
@@ -2048,6 +2256,150 @@
     });
   };
 
+  // ── Collaborator Mode ─────────────────────────────────
+  let _collabChannel  = null;
+  let _collabPresence = null;
+
+  const openCollabPanel = async () => {
+    const profile = PhinityCore.loadProfileCached();
+    if (!PhinityCore.TIER_LIMITS[profile?.tier || 'free'].collaboratorMode) {
+      appendUpgradeNudge('Collaborator Mode is available on the Pro plan.');
+      return;
+    }
+    const panel = document.getElementById('collabPanel');
+    if (!panel) return;
+    panel.classList.add('collab-panel-visible');
+    document.getElementById('collabBackBtn').onclick = () => {
+      panel.classList.remove('collab-panel-visible');
+    };
+    await loadCollabList();
+    initCollabRealtime();
+  };
+
+  const loadCollabList = async () => {
+    const listEl = document.getElementById('collabList');
+    if (!listEl || !currentSessionId) return;
+    listEl.innerHTML = '<div class="collab-empty">Loading…</div>';
+    try {
+      const { data } = await PhinityCore.db
+        .from('session_collaborators')
+        .select('*')
+        .eq('session_id', currentSessionId);
+      renderCollabList(data || []);
+    } catch (e) {
+      listEl.innerHTML = '<div class="collab-empty">Could not load collaborators.</div>';
+    }
+  };
+
+  const renderCollabList = (collabs) => {
+    const listEl = document.getElementById('collabList');
+    if (!listEl) return;
+    if (collabs.length === 0) {
+      listEl.innerHTML = '<div class="collab-empty">No collaborators yet.</div>';
+      return;
+    }
+    listEl.innerHTML = collabs.map(c => `
+      <div class="collab-item" data-id="${c.id}">
+        <div>
+          <div class="collab-item-email">${escapeHtml(c.email)}</div>
+          <div class="collab-item-status">${c.accepted ? 'Active' : 'Invite pending'}</div>
+        </div>
+        <button class="collab-remove-btn" data-id="${c.id}">Remove</button>
+      </div>
+    `).join('');
+
+    listEl.querySelectorAll('.collab-remove-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remove this collaborator?')) return;
+        btn.disabled = true;
+        try {
+          await PhinityCore.db.from('session_collaborators').delete().eq('id', btn.dataset.id);
+          await loadCollabList();
+        } catch (e) {
+          btn.disabled = false;
+          alert('Failed to remove collaborator.');
+        }
+      });
+    });
+  };
+
+  const initCollabRealtime = () => {
+    if (!currentSessionId) return;
+    // Clean up existing channel
+    if (_collabChannel) {
+      PhinityCore.db.removeChannel(_collabChannel);
+      _collabChannel = null;
+    }
+
+    const dot      = document.getElementById('collabDot');
+    const statusEl = document.getElementById('collabStatusText');
+
+    _collabChannel = PhinityCore.db
+      .channel(`session:${currentSessionId}`)
+      .on('broadcast', { event: 'doc_update' }, (payload) => {
+        // A collaborator pushed an updated document — apply it if different
+        if (payload.payload?.document && payload.payload.document !== currentDocumentText) {
+          currentDocumentText = payload.payload.document;
+          const docContent = document.getElementById('docContent');
+          if (docContent) docContent.innerHTML = formatDocText(currentDocumentText);
+        }
+      })
+      .on('presence', { event: 'sync' }, () => {
+        const state = _collabChannel.presenceState();
+        const count = Object.keys(state).length;
+        if (dot)      dot.classList.toggle('online', count > 0);
+        if (statusEl) statusEl.textContent = count > 1 ? `${count} people connected` : 'Connected';
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          const user = await PhinityCore.getUser();
+          await _collabChannel.track({ user_id: user?.id, email: user?.email });
+          if (dot)      dot.classList.add('online');
+          if (statusEl) statusEl.textContent = 'Connected';
+        }
+      });
+  };
+
+  // Broadcast doc changes to collaborators (called after every doc mutation)
+  const broadcastDocUpdate = () => {
+    if (!_collabChannel || !currentDocumentText) return;
+    _collabChannel.send({
+      type: 'broadcast',
+      event: 'doc_update',
+      payload: { document: currentDocumentText },
+    }).catch(() => {});
+  };
+
+  const initCollabMode = () => {
+    document.getElementById('openCollabBtn')?.addEventListener('click', () => {
+      openCollabPanel();
+    });
+
+    document.getElementById('collabInviteBtn')?.addEventListener('click', async () => {
+      const email = document.getElementById('collabEmailInput')?.value.trim();
+      if (!email || !email.includes('@')) { alert('Enter a valid email.'); return; }
+      if (!currentSessionId) { alert('Start or open a document session first.'); return; }
+      const btn = document.getElementById('collabInviteBtn');
+      btn.textContent = 'Inviting…';
+      btn.disabled = true;
+      try {
+        await PhinityCore.db.from('session_collaborators').insert({
+          session_id: currentSessionId,
+          email,
+          accepted: false,
+        });
+        document.getElementById('collabEmailInput').value = '';
+        btn.textContent = 'Invite';
+        btn.disabled = false;
+        await loadCollabList();
+      } catch (e) {
+        btn.textContent = 'Invite';
+        btn.disabled = false;
+        alert('Failed to invite: ' + (e.message || 'Unknown error'));
+      }
+    });
+  };
+
   // ── Bootstrap ─────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     initLogin();
@@ -2063,6 +2415,7 @@
     initAttachSheet();
     initProfileScreen();
     initReassessment();
+    initCollabMode();
     init();
   });
 

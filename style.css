@@ -2277,3 +2277,81 @@ a { color: var(--crimson-l); text-decoration: none; }
     background-position: right center;
   }
 }
+
+/* ── Fingerprint Vault ─────────────────────────────── */
+.vault-list { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.75rem; }
+.vault-loading, .vault-empty {
+  font-size: 0.8rem; color: var(--text-3); padding: 0.5rem 0; text-align: center;
+}
+.vault-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface-2, #161616);
+  border: 1px solid var(--border, #1e1e1e);
+  border-radius: 0.55rem; padding: 0.65rem 0.875rem;
+}
+.vault-item-label { font-size: 0.85rem; color: var(--text-1); display: block; }
+.vault-item-date  { font-size: 0.7rem; color: var(--text-3); margin-top: 0.1rem; }
+.vault-item-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.vault-btn {
+  padding: 0.3rem 0.65rem; border-radius: 0.4rem; border: 1px solid var(--border);
+  font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  background: var(--surface-3, #1e1e1e); color: var(--text-2);
+  transition: color 0.15s, border-color 0.15s;
+}
+.vault-btn.apply-vault:hover  { color: #34d399; border-color: #34d399; }
+.vault-btn.delete-vault:hover { color: var(--crimson); border-color: var(--crimson); }
+.vault-btn.active-check       { color: #34d399; border-color: #34d399; }
+.vault-limit-note { font-size: 0.72rem; color: var(--text-3); margin-top: 0.5rem; }
+
+/* ── Tone Lock toggle ──────────────────────────────── */
+.toggle-wrap { display: flex; align-items: center; }
+.toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; cursor: pointer; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; border-radius: 22px;
+  background: var(--surface-3, #2a2a2a);
+  border: 1px solid var(--border, #333);
+  transition: background 0.2s, border-color 0.2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--text-3, #666);
+  left: 2px; top: 2px;
+  transition: transform 0.2s, background 0.2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--crimson, #c0392b); border-color: var(--crimson, #c0392b); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: #fff; }
+
+/* ── Priority Generation ───────────────────────────── */
+.priority-status-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.priority-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399aa;
+  flex-shrink: 0;
+}
+.priority-status-text { font-size: 0.8rem; color: #34d399; }
+
+/* ── Pro badge inline ──────────────────────────────── */
+.pro-badge-inline {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em;
+  color: #f59e0b; border: 1px solid #f59e0b;
+  padding: 0.1rem 0.4rem; border-radius: 0.25rem;
+  vertical-align: middle; margin-left: 0.25rem;
+}
+
+/* ── pf-section-desc ──────────────────────────────── */
+.pf-section-desc {
+  font-size: 0.78rem; color: var(--text-3); line-height: 1.55;
+  margin: 0 0 0.875rem; padding: 0 1rem;
+}
+
+/* ── Tier-gated toolbar button ─────────────────────── */
+.doc-tool-btn.tier-gated { opacity: 0.55; }
+
+/* ── DOCX button ───────────────────────────────────── */
+#tb-docx { letter-spacing: 0.01em; }

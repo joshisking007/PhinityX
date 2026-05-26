@@ -477,6 +477,13 @@ const PhinityCore = (() => {
     // Pass full fingerprint so edge function builds the complete Part II personality prompt
     const profile = loadProfileCachedOrOverride();
     const fp      = profile ? buildFingerprint(profile) : null;
+    const tier    = profile?.tier || 'free';
+
+    // Tone Lock — Pro only; if enabled, skip voice drift recalibration server-side
+    const toneLockEnabled = TIER_LIMITS[tier].toneLock && getToneLockPref();
+
+    // Priority Gen — Pro only; pass flag for edge function queue routing
+    const priorityGen = TIER_LIMITS[tier].priorityGen;
 
     const result = await callEdge({
       action:            'generate',
@@ -485,6 +492,8 @@ const PhinityCore = (() => {
       attachments:       attachments || [],
       fingerprint:       fp,
       writingSample:     profile ? (profile.writingSample || null) : null,
+      toneLock:          toneLockEnabled,
+      priorityGen:       priorityGen,
     });
 
     // Refresh profile cache (updated counters)
@@ -507,7 +516,20 @@ const PhinityCore = (() => {
 
   // ── Regenerate section ─────────────────────────────────
   const regenerateSection = async (excerpt, instruction, documentText, mode) => {
-    const result = await callEdge({ action: 'regenerate_section', excerpt, instruction, documentText, mode });
+    // FIX: fingerprint + writingSample now forwarded so edge function
+    // can build the correct system prompt (previously body?.fingerprint
+    // was out of scope inside actionRegenerateSection and threw a ReferenceError)
+    const profile = loadProfileCachedOrOverride();
+    const fp      = profile ? buildFingerprint(profile) : null;
+    const result  = await callEdge({
+      action:        'regenerate_section',
+      excerpt,
+      instruction,
+      documentText,
+      mode,
+      fingerprint:   fp,
+      writingSample: profile ? (profile.writingSample || null) : null,
+    });
     return result.result || '';
   };
 
@@ -516,6 +538,67 @@ const PhinityCore = (() => {
     const result = await callEdge({ action: 'submission_mode', documentText });
     return result.result || documentText;
   };
+
+  // ── Fingerprint Vault ──────────────────────────────────
+  // Save a named fingerprint snapshot (enforced server-side by tier limit)
+  const saveFingerprintToVault = async (label) => {
+    const profile = loadProfileCachedOrOverride();
+    if (!profile) throw new Error('No profile loaded.');
+    const tier = profile.tier || 'free';
+    if (TIER_LIMITS[tier].fingerprintVault === 0) {
+      throw Object.assign(
+        new Error('Fingerprint Vault is available on Core and Pro plans.'),
+        { code: 'limit_reached' }
+      );
+    }
+    const fp = buildFingerprint(profile);
+    return await callEdge({
+      action:          'save_fingerprint',
+      label:           label || 'Untitled Fingerprint',
+      fingerprintData: fp,
+    });
+    // returns { id, label, vault_count, vault_max }
+  };
+
+  // Load all saved fingerprints for this user
+  const loadFingerprintVault = async () => {
+    const profile = loadProfileCached();
+    const tier    = (profile?.tier) || 'free';
+    if (TIER_LIMITS[tier].fingerprintVault === 0) {
+      throw Object.assign(
+        new Error('Fingerprint Vault is available on Core and Pro plans.'),
+        { code: 'limit_reached' }
+      );
+    }
+    return await callEdge({ action: 'load_fingerprint_vault' });
+    // returns { fingerprints: [...], vault_max }
+  };
+
+  // Delete a saved fingerprint by id
+  const deleteFingerprintFromVault = async (fingerprintId) => {
+    return await callEdge({ action: 'delete_fingerprint', fingerprintId });
+  };
+
+  // Apply a saved vault fingerprint as the active override for the next generation only
+  const applyVaultFingerprint = (fingerprintData) => {
+    const profile = loadProfileCached();
+    if (!profile) return;
+    const patched = {
+      ...profile,
+      styleRhythm:   fingerprintData.rhythm      ?? profile.styleRhythm,
+      styleVocab:    fingerprintData.vocab        ?? profile.styleVocab,
+      styleTone:     fingerprintData.tone         ?? profile.styleTone,
+      weakness:      fingerprintData.weakness     ?? profile.weakness,
+      characters:    fingerprintData.characters   ?? profile.characters,
+      writingSample: fingerprintData.writingSample ?? profile.writingSample,
+    };
+    patchProfileCache(patched);
+  };
+
+  // ── Tone Lock preference (persisted in localStorage) ──
+  const TONE_LOCK_KEY = 'phx_tone_lock';
+  const getToneLockPref  = () => localStorage.getItem(TONE_LOCK_KEY) === 'true';
+  const setToneLockPref  = (val) => localStorage.setItem(TONE_LOCK_KEY, val ? 'true' : 'false');
 
   // ── Profile summary for Profile Complete screen ────────
   const buildProfileSummary = (profile) => {
@@ -576,6 +659,16 @@ const PhinityCore = (() => {
     runVoiceDrift,
     runSubmissionMode,
     regenerateSection,
+
+    // Tone Lock
+    getToneLockPref,
+    setToneLockPref,
+
+    // Fingerprint Vault (Core + Pro)
+    saveFingerprintToVault,
+    loadFingerprintVault,
+    deleteFingerprintFromVault,
+    applyVaultFingerprint,
   };
 
 })();

@@ -1189,12 +1189,61 @@
         </div>
       </div>
 
+      <!-- Fingerprint Vault (Core + Pro) -->
+      <div class="profile-section" id="fingerprintVaultSection" style="display:none">
+        <div class="profile-section-header">
+          <span>Fingerprint Vault</span>
+          <button class="edit-btn" id="saveFingerprintBtn">Save current</button>
+        </div>
+        <p class="pf-section-desc">Save named snapshots of your current writing fingerprint. Apply any saved snapshot before generating to write in a past voice.</p>
+        <div id="vaultList" class="vault-list"><div class="vault-loading">Loading…</div></div>
+        <div class="vault-limit-note" id="vaultLimitNote"></div>
+      </div>
+
+      <!-- Tone Lock (Pro) -->
+      <div class="profile-section" id="toneLockSection" style="display:none">
+        <div class="profile-section-header">
+          <span>Tone Lock</span>
+          <div class="toggle-wrap">
+            <label class="toggle-switch" id="toneLockToggleLabel">
+              <input type="checkbox" id="toneLockToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <p class="pf-section-desc">When on, your style parameters are frozen for each generation — voice drift recalibration is skipped and your exact tone settings are always used as-is.</p>
+      </div>
+
+      <!-- Priority Generation (Pro) -->
+      <div class="profile-section" id="priorityGenSection" style="display:none">
+        <div class="profile-section-header">
+          <span>Priority Generation</span>
+          <span class="pro-badge-inline">PRO</span>
+        </div>
+        <p class="pf-section-desc">Your document requests are processed with priority. Expect faster generation times during high-load periods.</p>
+        <div class="priority-status-row">
+          <span class="priority-dot"></span>
+          <span class="priority-status-text">Priority queue active</span>
+        </div>
+      </div>
+
+      <!-- Evolution Log (Pro) -->
       <div class="profile-section" id="evolutionLogSection" style="display:none">
         <div class="profile-section-header">
           <span>Evolution Log</span>
         </div>
         <p class="pf-section-desc">Your voice drift history across all sessions. Tracks how consistently your writing fingerprint comes through over time.</p>
         <button class="btn-secondary full-width" id="openEvolutionLog">View Evolution Log</button>
+      </div>
+
+      <!-- Collaborator Mode (Pro) -->
+      <div class="profile-section" id="collaboratorSection" style="display:none">
+        <div class="profile-section-header">
+          <span>Collaborator Mode</span>
+          <span class="pro-badge-inline">PRO</span>
+        </div>
+        <p class="pf-section-desc">Invite others to view and edit your current document in real time.</p>
+        <button class="btn-secondary full-width" id="openCollabBtn">Manage Collaborators</button>
       </div>
 
       <div style="padding: 0 0 1rem;">
@@ -1442,6 +1491,124 @@
   </div>
   <div class="bottom-sheet-overlay" id="attachOverlay"></div>
 
+
+  <!-- ═══════════════════════════════════════════
+       COLLABORATOR MODE PANEL (Pro)
+  ════════════════════════════════════════════ -->
+  <style>
+  .collab-panel {
+    position: fixed;
+    inset: 0;
+    background: var(--surface-1, #0e0e0e);
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+  .collab-panel-visible { transform: translateX(0); }
+  .collab-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border, #1e1e1e);
+    flex-shrink: 0;
+  }
+  .collab-back-btn {
+    display: flex; align-items: center; gap: 0.35rem;
+    background: none; border: none; color: var(--text-2, #aaa);
+    font-size: 0.875rem; cursor: pointer; padding: 0.25rem 0;
+  }
+  .collab-topbar-title {
+    font-size: 0.875rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-1, #fff);
+  }
+  .collab-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
+  .collab-section-label {
+    font-size: 0.7rem; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--text-3, #555);
+    margin-bottom: 0.75rem;
+  }
+  .collab-invite-row {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem;
+  }
+  .collab-invite-row input {
+    flex: 1; background: var(--surface-2, #161616);
+    border: 1px solid var(--border, #222); border-radius: 0.5rem;
+    padding: 0.6rem 0.875rem; color: var(--text-1, #fff);
+    font-size: 0.875rem;
+  }
+  .collab-invite-btn {
+    padding: 0.6rem 1rem; background: var(--crimson, #c0392b);
+    color: #fff; border: none; border-radius: 0.5rem;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    white-space: nowrap;
+  }
+  .collab-invite-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .collab-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .collab-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface-2, #161616);
+    border: 1px solid var(--border, #1e1e1e);
+    border-radius: 0.6rem; padding: 0.75rem 1rem;
+  }
+  .collab-item-email { font-size: 0.85rem; color: var(--text-1, #fff); }
+  .collab-item-status {
+    font-size: 0.7rem; letter-spacing: 0.04em;
+    color: var(--text-3, #666); margin-top: 0.1rem;
+  }
+  .collab-remove-btn {
+    background: none; border: none; color: var(--text-3, #666);
+    cursor: pointer; font-size: 0.75rem; padding: 0.25rem 0.5rem;
+    border-radius: 0.35rem;
+  }
+  .collab-remove-btn:hover { color: var(--crimson, #c0392b); }
+  .collab-realtime-indicator {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.75rem; color: var(--text-3, #666);
+    margin-bottom: 1rem;
+  }
+  .collab-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #555;
+    transition: background 0.3s;
+  }
+  .collab-dot.online { background: #34d399; }
+  .collab-empty {
+    font-size: 0.82rem; color: var(--text-3, #666);
+    padding: 1rem 0; text-align: center;
+  }
+  </style>
+
+  <div id="collabPanel" class="collab-panel">
+    <div class="collab-topbar">
+      <button class="collab-back-btn" id="collabBackBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+      <span class="collab-topbar-title">Collaborator Mode</span>
+      <span></span>
+    </div>
+    <div class="collab-body">
+      <div class="collab-realtime-indicator">
+        <span class="collab-dot" id="collabDot"></span>
+        <span id="collabStatusText">Not connected</span>
+      </div>
+      <div class="collab-section-label">Invite by email</div>
+      <div class="collab-invite-row">
+        <input type="email" id="collabEmailInput" placeholder="collaborator@email.com" autocomplete="off" />
+        <button class="collab-invite-btn" id="collabInviteBtn">Invite</button>
+      </div>
+      <div class="collab-section-label">Active collaborators</div>
+      <div class="collab-list" id="collabList">
+        <div class="collab-empty">No collaborators yet.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════════════════════════════════
        RE-ASSESSMENT MODAL
   ════════════════════════════════════════════ -->
@@ -1555,6 +1722,9 @@
   <!-- PDF generation libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Word (.docx) export library -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
           onerror="document.body.innerHTML='<div style=\"color:#fff;background:#000;padding:2rem;font-family:monospace\">PhinityX could not load — Supabase CDN failed to fetch. Check your network and reload.</div>'"></script>
