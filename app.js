@@ -2093,7 +2093,7 @@
     }
   };
 
-  const PAYSTACK_PUBLIC_KEY = 'pk_live_REPLACE_WITH_YOUR_LIVE_PUBLIC_KEY';
+  const PAYSTACK_PUBLIC_KEY = 'pk_live_f7bdb4a7df1c2b46c58cefe55b610e4becbd2634';
   // ↑ When Paystack approves your account, swap this for your live public key.
   // For testing now use: 'pk_test_4e9d480d329b618c4b81...' (your test key from dashboard)
 
