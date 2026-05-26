@@ -2132,7 +2132,6 @@
 
     // Step 2 — Open Paystack popup with the access_code
     const handler = PaystackPop.setup({
-      key:         PAYSTACK_PUBLIC_KEY,
       access_code: initData.access_code,
       ref:         initData.reference,
       email:       session.user.email,
