@@ -2131,10 +2131,9 @@
     }
 
     // Step 2 — Open Paystack popup with the access_code
-    const handler = PaystackPop.setup({
+    PaystackPop.newTransaction({
+      key:         PAYSTACK_PUBLIC_KEY,
       access_code: initData.access_code,
-      ref:         initData.reference,
-      email:       session.user.email,
 
       onSuccess: async (transaction) => {
         // Step 3 — Verify server-side and upgrade tier
@@ -2170,8 +2169,6 @@
         console.log('Paystack popup closed by user.');
       },
     });
-
-    handler.openIframe();
   };
 
   const handleProfileEdit = async (section) => {
