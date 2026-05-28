@@ -1743,7 +1743,7 @@
       pills = document.createElement('div');
       pills.id = 'attachPills';
       pills.className = 'attachment-pills';
-      document.querySelector('.doc-input-bar')?.before(pills);
+      document.getElementById('homeInputBar')?.before(pills);
     }
     if (pendingAttachments.length === 0) { pills.remove(); return; }
     pills.innerHTML = pendingAttachments.map((a, i) => `
