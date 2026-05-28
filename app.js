@@ -993,14 +993,6 @@
     return parts.join('\n\n---\n\n');
   };
 
-      if (a.content) {
-        return `[DOCUMENT: ${a.name}]\n${a.content.slice(0, 8000)}${a.content.length > 8000 ? '\n...(truncated)' : ''}`;
-      }
-      return `[FILE: ${a.name}] — content unavailable`;
-    });
-    return parts.join('\n\n---\n\n');
-  };
-
   // ── Chat UI ───────────────────────────────────────
   const clearChat = () => { document.getElementById('chatArea').innerHTML = ''; };
 
