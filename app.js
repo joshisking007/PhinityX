@@ -981,6 +981,18 @@
       if (a.type === 'image') {
         return `[IMAGE: ${a.name}] — visual reference attached separately`;
       }
+      // FIX: handle binary files that were attached without extractable text
+      if (a.binaryNote) {
+        return a.binaryNote;
+      }
+      if (a.content) {
+        return `[DOCUMENT: ${a.name}]\n${a.content.slice(0, 8000)}${a.content.length > 8000 ? '\n...(truncated)' : ''}`;
+      }
+      return `[FILE: ${a.name}] — content unavailable`;
+    });
+    return parts.join('\n\n---\n\n');
+  };
+
       if (a.content) {
         return `[DOCUMENT: ${a.name}]\n${a.content.slice(0, 8000)}${a.content.length > 8000 ? '\n...(truncated)' : ''}`;
       }
@@ -1668,11 +1680,13 @@
     e.target.value = '';
 
     files.forEach(f => {
-      pendingImageFiles.push(f);
       // Read as base64 immediately so it's ready when generation fires
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result.split(',')[1];
+        // FIX: push to pendingImageFiles here, inside onload, so index stays
+        // in sync with pendingAttachments (both arrays grow together atomically)
+        pendingImageFiles.push(f);
         pendingAttachments.push({
           name: f.name,
           type: 'image',
@@ -1688,17 +1702,46 @@
   };
 
   const handleDocUpload = async (e) => {
+    const PLAIN_TEXT_TYPES = [
+      'text/plain', 'text/markdown', 'text/csv',
+      'application/json', 'application/xml', 'text/html',
+    ];
+    const BINARY_EXTENSIONS = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'];
+
+    closeAttachSheet();
+
     for (const f of Array.from(e.target.files)) {
+      const ext = f.name.slice(f.name.lastIndexOf('.')).toLowerCase();
+      const isBinary = BINARY_EXTENSIONS.includes(ext) ||
+        (!PLAIN_TEXT_TYPES.includes(f.type) && f.type !== '' && !f.type.startsWith('text/'));
+
+      if (isBinary) {
+        // FIX: binary files (PDF, DOCX, PPTX…) cannot be read as text.
+        // Previously readAsText() silently produced garbage content that reached
+        // the edge function corrupted. Now we attach with a clear label so the
+        // AI knows the file was attached but content extraction isn't supported
+        // client-side. The file name is still useful context for the prompt.
+        pendingAttachments.push({
+          name: f.name,
+          type: 'doc',
+          content: null,
+          binaryNote: `[Note: ${f.name} is a binary file. Content cannot be extracted client-side — filename provided as reference.]`,
+        });
+        renderAttachmentPills();
+        continue;
+      }
+
       const text = await new Promise((res, rej) => {
         const r = new FileReader();
         r.onload = () => res(r.result);
         r.onerror = rej;
         r.readAsText(f);
       }).catch(() => null);
+
       pendingAttachments.push({ name: f.name, type: 'doc', content: text });
+      renderAttachmentPills();
     }
-    closeAttachSheet();
-    renderAttachmentPills();
+
     e.target.value = '';
   };
 
@@ -1719,7 +1762,15 @@
     `).join('');
     pills.querySelectorAll('.pill-remove').forEach(btn => {
       btn.addEventListener('click', () => {
-        pendingAttachments.splice(parseInt(btn.dataset.idx), 1);
+        const idx = parseInt(btn.dataset.idx);
+        const removed = pendingAttachments[idx];
+        // FIX: if removing an image pill, also remove the matching entry from
+        // pendingImageFiles so the 5-image cap and generation payloads stay in sync
+        if (removed && removed.type === 'image') {
+          const imgIdx = pendingImageFiles.indexOf(removed.file);
+          if (imgIdx !== -1) pendingImageFiles.splice(imgIdx, 1);
+        }
+        pendingAttachments.splice(idx, 1);
         renderAttachmentPills();
       });
     });
